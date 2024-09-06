@@ -1,61 +1,26 @@
 #include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
 #include "esp_lcd_types.h"
 #include "esp_heap_caps.h"
+#include "../include/lcd_defines.h"
 #include "lvgl.h"
 
-// Define GPIOs for the RGB interface (adjust based on your schematic)
-#define GPIO_LCD_VSYNC      41
-#define GPIO_LCD_HSYNC      39
-#define GPIO_LCD_DE         40
-#define GPIO_LCD_PCLK       0
-#define GPIO_LCD_BACKLIGHT  2
 
-#define GPIO_LCD_R3         45
-#define GPIO_LCD_R4         48
-#define GPIO_LCD_R5         47
-#define GPIO_LCD_R6         21
-#define GPIO_LCD_R7         14
+// Initialize the RGB panel
+esp_lcd_panel_handle_t panel_handle = NULL;
 
-#define GPIO_LCD_G2         5
-#define GPIO_LCD_G3         6
-#define GPIO_LCD_G4         7
-#define GPIO_LCD_G5         15
-#define GPIO_LCD_G6         16
-#define GPIO_LCD_G7         4
+// Your flush callback function
+static void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p) {
+    // Transfer the rendered buffer to the actual display
+    esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_p);
 
-#define GPIO_LCD_B3         8
-#define GPIO_LCD_B4         3
-#define GPIO_LCD_B5         46
-#define GPIO_LCD_B6         9
-#define GPIO_LCD_B7         1
-
-#define LCD_WIDTH  800
-#define LCD_HEIGHT 480
-
-// // Define a solid color in RGB565 format (0xFFFF represents white)
-// uint16_t color_bitmap[LCD_WIDTH * LCD_HEIGHT];
-
-// // Fill the buffer with a single color (white in this case)
-// void fill_color_bitmap(uint16_t color) {
-//     for (int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
-//         color_bitmap[i] = color;  // Fill each pixel with the same color
-//     }
-// }
-
-// Declare the display driver flush function for LVGL
-// static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p);
-
-// LVGL flush callback for drawing to the display
-static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p) {
-    // Transfer the LVGL rendered content to the display's framebuffer
-    // esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_p);
-
-    // Inform LVGL that flushing is done
-    lv_disp_flush_ready(drv);
+    // Notify LVGL that flushing is done
+    lv_display_flush_ready(disp);
 }
 
 // Configure display timings (typically found in the display datasheet)
@@ -121,29 +86,69 @@ void app_main(void)
     gpio_config(&bk_gpio_config);
     lcd_set_backlight(true);  // Turn on backlight
 
-    // Initialize the RGB panel
-    esp_lcd_panel_handle_t panel_handle = NULL;
     ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_config, &panel_handle));
 
     // Initialize the RGB panel
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
-    uint16_t *color_bitmap = heap_caps_malloc(LCD_WIDTH * LCD_HEIGHT * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
+    // Initialize LVGL library
+    lv_init();
 
-    if (color_bitmap == NULL) {
-        ESP_LOGE("TAG", "Failed to allocate memory in PSRAM");
+    // Allocate buffer
+    lv_color_t *buf1 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    lv_color_t *buf2 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+
+     if (!buf1 || !buf2) {
+        ESP_LOGE("MEMORY", "Failed to allocate buffers");
         return;
     }
 
-    // Fill the buffer with a solid color (e.g., white)
-    for (int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
-        color_bitmap[i] = 0x1D00;  // Example: Fill with white color (RGB565)
+    // Create the display
+    lv_display_t *disp = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
+
+    // Set flush callback
+    lv_display_set_flush_cb(disp, lvgl_flush_cb);
+
+    // Set buffers for rendering
+    lv_display_set_buffers(disp, buf1, buf2, LCD_WIDTH * 10 * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    // Create UI elements (e.g., a button)
+    // lv_obj_t *btn = lv_button_create(lv_screen_active());  // Create a button on the active screen
+    // lv_obj_set_size(btn, 120, 50);                            // Set the button size
+    // lv_obj_set_pos(btn, 400, 240);
+    // // lv_obj_center(btn);                                       // Center the button
+
+    // Add a label to the button
+    // lv_obj_t *label = lv_label_create(btn);
+    // lv_label_set_text(label, "Click Me");
+
+    lv_obj_t *txt = lv_label_create(lv_screen_active());
+    lv_label_set_text(txt, "Hello World!");
+    lv_obj_set_height(txt, 310);
+    lv_obj_set_pos(txt, 50, 50);
+
+    // Start handling LVGL tasks
+    while (1) {
+        lv_timer_handler();     // Let LVGL handle UI updates
+        vTaskDelay(pdMS_TO_TICKS(10));  // Delay to avoid overload
     }
 
-    // Fill the screen with a solid color (optional, testing purposes)
-    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, LCD_WIDTH, LCD_HEIGHT, color_bitmap));
+    // uint16_t *color_bitmap = heap_caps_malloc(LCD_WIDTH * LCD_HEIGHT * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
 
-    // Free the memory when done
-    free(color_bitmap);
+    // if (color_bitmap == NULL) {
+    //     ESP_LOGE("TAG", "Failed to allocate memory in PSRAM");
+    //     return;
+    // }
+
+    // // Fill the buffer with a solid color (e.g., white)
+    // for (int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
+    //     color_bitmap[i] = 0x1D00;  // Example: Fill with white color (RGB565)
+    // }
+
+    // // Fill the screen with a solid color (optional, testing purposes)
+    // ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, LCD_WIDTH, LCD_HEIGHT, color_bitmap));
+
+    // // Free the memory when done
+    // free(color_bitmap);
 }
