@@ -25,18 +25,19 @@ static void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *co
 
 // Configure display timings (typically found in the display datasheet)
 esp_lcd_rgb_panel_config_t panel_config = {
-    .clk_src = LCD_CLK_SRC_PLL160M,
+    .clk_src = LCD_CLK_SRC_DEFAULT,
     .timings = {
-        .pclk_hz = 10 * 1000 * 1000,       // Pixel clock frequency (adjust based on specs)
+        .pclk_hz = 15000000,       // Pixel clock frequency (adjust based on specs)
         .h_res = LCD_WIDTH,                // Horizontal resolution
         .v_res = LCD_HEIGHT,               // Vertical resolution
-        .hsync_back_porch = 40,            // Horizontal back porch
-        .hsync_front_porch = 40,           // Horizontal front porch
-        .hsync_pulse_width = 48,           // Horizontal sync pulse width
-        .vsync_back_porch = 13,            // Vertical back porch
-        .vsync_front_porch = 32,           // Vertical front porch
-        .vsync_pulse_width = 3,            // Vertical sync pulse width
+        .hsync_back_porch = 43,            // Horizontal back porch
+        .hsync_front_porch = 8,           // Horizontal front porch
+        .hsync_pulse_width = 4,           // Horizontal sync pulse width
+        .vsync_back_porch = 12,            // Vertical back porch
+        .vsync_front_porch = 8,           // Vertical front porch
+        .vsync_pulse_width = 4,            // Vertical sync pulse width
         .flags.pclk_active_neg = true,     // Pixel clock active on the falling edge
+        .flags.hsync_idle_low = true
     },
     .data_width = 16,                      // 16-bit color depth
     .psram_trans_align = 64,
@@ -46,22 +47,22 @@ esp_lcd_rgb_panel_config_t panel_config = {
     .de_gpio_num = GPIO_LCD_DE,
     .pclk_gpio_num = GPIO_LCD_PCLK,
     .data_gpio_nums = {
-        GPIO_LCD_R3,
-        GPIO_LCD_R4,
-        GPIO_LCD_R5,
-        GPIO_LCD_R6,
-        GPIO_LCD_R7,
-        GPIO_LCD_G2,
-        GPIO_LCD_G3,
-        GPIO_LCD_G4,
-        GPIO_LCD_G5,
-        GPIO_LCD_G6,
-        GPIO_LCD_G7,
-        GPIO_LCD_B3,
-        GPIO_LCD_B4,
-        GPIO_LCD_B5,
-        GPIO_LCD_B6,
-        GPIO_LCD_B7,
+        LCD_PIN_D0,
+        LCD_PIN_D1,
+        LCD_PIN_D2,
+        LCD_PIN_D3,
+        LCD_PIN_D4,
+        LCD_PIN_D5,
+        LCD_PIN_D6,
+        LCD_PIN_D7,
+        LCD_PIN_D8,
+        LCD_PIN_D9,
+        LCD_PIN_D10,
+        LCD_PIN_D11,
+        LCD_PIN_D12,
+        LCD_PIN_D13,
+        LCD_PIN_D14,
+        LCD_PIN_D15,
     },
     .disp_gpio_num = -1,                   // If no display on/off pin, set to -1
     .flags.fb_in_psram = true,             // Framebuffer stored in PSRAM (optional)
@@ -96,13 +97,14 @@ void app_main(void)
     lv_init();
 
     // Allocate buffer
-    lv_color_t *buf1 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    lv_color_t *buf2 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    // lv_color_t *buf1 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    // lv_color_t *buf2 = heap_caps_malloc(LCD_WIDTH * 10 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
 
-     if (!buf1 || !buf2) {
-        ESP_LOGE("MEMORY", "Failed to allocate buffers");
-        return;
-    }
+    //  if (!buf1 || !buf2) {
+    //     ESP_LOGE("MEMORY", "Failed to allocate buffers");
+    //     return;
+    // }
+
 
     // Create the display
     lv_display_t *disp = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
@@ -110,23 +112,33 @@ void app_main(void)
     // Set flush callback
     lv_display_set_flush_cb(disp, lvgl_flush_cb);
 
+    void *buf1 = NULL;
+    void *buf2 = NULL;
+    size_t draw_buffer_sz = LCD_WIDTH * LCD_HEIGHT * lv_color_format_get_size(lv_display_get_color_format(disp));
+    buf1 = heap_caps_malloc(draw_buffer_sz, MALLOC_CAP_SPIRAM);
+    assert(buf1);
+    buf2 = heap_caps_malloc(draw_buffer_sz, MALLOC_CAP_SPIRAM);
+    assert(buf2);
     // Set buffers for rendering
-    lv_display_set_buffers(disp, buf1, buf2, LCD_WIDTH * 10 * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    // lv_display_set_buffers(disp, buf1, buf2, LCD_WIDTH * 10 * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_buffers(disp, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_FULL);
 
     // Create UI elements (e.g., a button)
-    // lv_obj_t *btn = lv_button_create(lv_screen_active());  // Create a button on the active screen
-    // lv_obj_set_size(btn, 120, 50);                            // Set the button size
-    // lv_obj_set_pos(btn, 400, 240);
-    // // lv_obj_center(btn);                                       // Center the button
+    lv_obj_t *btn = lv_button_create(lv_screen_active());  // Create a button on the active screen
+    lv_obj_set_size(btn, 120, 50);                            // Set the button size
+    lv_obj_set_pos(btn, 50, 50);
+    // lv_obj_center(btn);                                       // Center the button
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
 
     // Add a label to the button
-    // lv_obj_t *label = lv_label_create(btn);
-    // lv_label_set_text(label, "Click Me");
+    lv_obj_t *label = lv_label_create(btn);
+    lv_label_set_text(label, "Click Me");
 
     lv_obj_t *txt = lv_label_create(lv_screen_active());
     lv_label_set_text(txt, "Hello World!");
     lv_obj_set_height(txt, 310);
-    lv_obj_set_pos(txt, 50, 50);
+    lv_obj_set_pos(txt, 200, 200);
+    lv_obj_align(txt, LV_ALIGN_CENTER, 0, 0);
 
     // Start handling LVGL tasks
     while (1) {
