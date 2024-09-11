@@ -41,7 +41,7 @@ esp_lcd_rgb_panel_config_t panel_config = {
     },
     .data_width = 16,                      // 16-bit color depth
     .psram_trans_align = 64,
-    .sram_trans_align = 4,
+    .sram_trans_align = 64,
     .hsync_gpio_num = GPIO_LCD_HSYNC,
     .vsync_gpio_num = GPIO_LCD_VSYNC,
     .de_gpio_num = GPIO_LCD_DE,
@@ -128,7 +128,7 @@ void app_main(void)
     lv_obj_set_size(btn, 120, 50);                            // Set the button size
     lv_obj_set_pos(btn, 50, 50);
     // lv_obj_center(btn);                                       // Center the button
-    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
+    // lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
 
     // Add a label to the button
     lv_obj_t *label = lv_label_create(btn);
@@ -138,7 +138,7 @@ void app_main(void)
     lv_label_set_text(txt, "Hello World!");
     lv_obj_set_height(txt, 310);
     lv_obj_set_pos(txt, 200, 200);
-    lv_obj_align(txt, LV_ALIGN_CENTER, 0, 0);
+    // lv_obj_align(txt, LV_ALIGN_CENTER, 0, 0);
 
     // Start handling LVGL tasks
     while (1) {
