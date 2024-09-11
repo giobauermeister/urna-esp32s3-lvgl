@@ -13,11 +13,13 @@ void app_main(void)
     printf("Hello World!\n");
 
     init_lcd_panel();
-    init_backlight();
     init_lvgl();
 
     // Create UI elements
     create_ui();
+    
+    vTaskDelay(pdMS_TO_TICKS(500));
+    init_lcd_backlight();
 
     // Start handling LVGL tasks
     while (1) {

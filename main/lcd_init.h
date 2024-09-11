@@ -55,7 +55,8 @@
 extern esp_lcd_panel_handle_t panel_handle;
 
 // Function declarations
-void init_backlight(void);
+void init_lcd_backlight(void);
+void lcd_set_backlight(bool on);
 void init_lcd_panel(void);
 
 #endif  // LCD_INIT_H

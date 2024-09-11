@@ -20,7 +20,7 @@ void create_ui(void) {
     // // Create a style and set a larger font size
     static lv_style_t style;
     lv_style_init(&style);
-    lv_style_set_text_font(&style, &lv_font_montserrat_20);  // Use a larger built-in font
+    lv_style_set_text_font(&style, &lv_font_montserrat_30);  // Use a larger built-in font
 
     // Create a static label
     lv_obj_t *txt = lv_label_create(screen);

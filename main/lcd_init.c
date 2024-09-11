@@ -8,12 +8,12 @@
 esp_lcd_panel_handle_t panel_handle = NULL;
 
 // Backlight control setup
-static void lcd_set_backlight(bool on) {
+void lcd_set_backlight(bool on) {
     gpio_set_level(GPIO_LCD_BACKLIGHT, on ? 1 : 0);
 }
 
 // Initialize the backlight GPIO
-void init_backlight(void) {
+void init_lcd_backlight(void) {
     gpio_config_t bk_gpio_config = {
         .pin_bit_mask = 1ULL << GPIO_LCD_BACKLIGHT,
         .mode = GPIO_MODE_OUTPUT,

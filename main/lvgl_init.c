@@ -28,12 +28,6 @@ void init_lvgl(void) {
 
     // Set display buffers
     lv_display_set_buffers(disp, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_FULL);
-
-    // Get the horizontal (width) and vertical (height) resolution of the panel
-    lv_coord_t width = lv_display_get_horizontal_resolution(disp);
-    lv_coord_t height = lv_display_get_vertical_resolution(disp);
-
-    printf("Display size: %ld x %ld\n", width, height);
 }
 
 
