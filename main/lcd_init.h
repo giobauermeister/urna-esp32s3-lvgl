@@ -1,3 +1,11 @@
+#ifndef LCD_INIT_H
+#define LCD_INIT_H
+
+#include "esp_lcd_panel_rgb.h"
+
+#define LCD_WIDTH  800
+#define LCD_HEIGHT 480
+
 // Define GPIOs for the RGB interface (adjust based on the schematic)
 #define GPIO_LCD_VSYNC      41
 #define GPIO_LCD_HSYNC      39
@@ -24,9 +32,6 @@
 #define GPIO_LCD_B6         9
 #define GPIO_LCD_B7         1
 
-#define LCD_WIDTH  800
-#define LCD_HEIGHT 480
-
 #define LCD_PIN_D0 GPIO_LCD_B3
 #define LCD_PIN_D1 GPIO_LCD_B4
 #define LCD_PIN_D2 GPIO_LCD_B5
@@ -45,3 +50,12 @@
 #define LCD_PIN_D13 GPIO_LCD_R5
 #define LCD_PIN_D14 GPIO_LCD_R6
 #define LCD_PIN_D15 GPIO_LCD_R7
+
+// Global panel handle
+extern esp_lcd_panel_handle_t panel_handle;
+
+// Function declarations
+void init_backlight(void);
+void init_lcd_panel(void);
+
+#endif  // LCD_INIT_H
