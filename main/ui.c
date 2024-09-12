@@ -1,5 +1,9 @@
 #include "lvgl.h"
 #include "ui.h"
+#include "esp_log.h"
+#include <stdio.h>
+
+static const char* TAG = "UI";
 
 void set_screen_background_white(lv_obj_t *screen) {
     static lv_style_t screen_style;
@@ -17,8 +21,21 @@ void set_screen_background_white(lv_obj_t *screen) {
 void anim_border_opacity_cb(void *rect_obj, int32_t opacity) {
     lv_obj_t *rect = (lv_obj_t *)rect_obj;
 
+    ESP_LOGI(TAG, "Updating border opacity: %ld", opacity);
+    printf("My animation\n");
+
     // Apply the new border opacity to the rectangle
     lv_obj_set_style_border_opa(rect, opacity, 0);
+}
+
+static void anim_x_cb(void * var, int32_t v)
+{
+    lv_obj_set_x((lv_obj_t *)var, v);
+}
+
+static void anim_size_cb(void * var, int32_t v)
+{
+    lv_obj_set_size((lv_obj_t *)var, v, v);
 }
 
 // Create UI elements (buttons, labels, etc.)
@@ -75,10 +92,35 @@ void create_ui(void) {
     lv_anim_init(&rect_anim);
     lv_anim_set_var(&rect_anim, rect);
     lv_anim_set_values(&rect_anim, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_duration(&rect_anim, 500);
-    lv_anim_set_playback_time(&rect_anim, 500);
-    lv_anim_set_repeat_delay(&rect_anim, 10);
+    lv_anim_set_duration(&rect_anim, 1000);
+    lv_anim_set_playback_delay(&rect_anim, 100);
+    lv_anim_set_playback_duration(&rect_anim, 300);
+    lv_anim_set_repeat_delay(&rect_anim, 300);
     lv_anim_set_repeat_count(&rect_anim, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_path_cb(&rect_anim, lv_anim_path_ease_in_out);
     lv_anim_set_exec_cb(&rect_anim, anim_border_opacity_cb);
     lv_anim_start(&rect_anim);
+
+    lv_obj_t * obj = lv_obj_create(lv_screen_active());
+    lv_obj_set_style_bg_color(obj, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_set_style_radius(obj, LV_RADIUS_CIRCLE, 0);
+
+    lv_obj_align(obj, LV_ALIGN_LEFT_MID, 10, 0);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, 10, 50);
+    lv_anim_set_duration(&a, 1000);
+    lv_anim_set_playback_delay(&a, 100);
+    lv_anim_set_playback_duration(&a, 300);
+    lv_anim_set_repeat_delay(&a, 500);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+
+    lv_anim_set_exec_cb(&a, anim_size_cb);
+    lv_anim_start(&a);
+    lv_anim_set_exec_cb(&a, anim_x_cb);
+    lv_anim_set_values(&a, 10, 240);
+    lv_anim_start(&a);
 }
