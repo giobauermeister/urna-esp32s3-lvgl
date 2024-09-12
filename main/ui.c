@@ -6,6 +6,9 @@ static const char* TAG = "UI";
 
 #define NUM_RECTANGLES 4  // Number of rectangles
 
+// Declare an array to hold the rectangle objects
+lv_obj_t *rectangles[NUM_RECTANGLES];
+
 void set_screen_background_white(lv_obj_t *screen) {
     static lv_style_t screen_style;
     lv_style_init(&screen_style);
@@ -44,20 +47,37 @@ void create_row_rectangles(lv_obj_t *parent, int16_t n_rect) {
     lv_style_set_bg_opa(&rect_style, LV_OPA_TRANSP);          // Set background opacity to transparent
 
     for (uint8_t i = 0; i < n_rect; i++) {
-        lv_obj_t *rect = lv_obj_create(parent);
+        rectangles[i] = lv_obj_create(parent);
 
-        lv_obj_set_size(rect, rect_width, rect_height);
+        lv_obj_set_size(rectangles[i], rect_width, rect_height);
 
         if(i == 0) {
-            lv_obj_align(rect, LV_ALIGN_LEFT_MID, 100, 0); // Position on the screen
+            lv_obj_align(rectangles[i], LV_ALIGN_LEFT_MID, 100, 0); // Position on the screen
         } else {
-            lv_obj_align_to(rect, previous_rect, LV_ALIGN_OUT_RIGHT_MID, spacing, 0);
+            lv_obj_align_to(rectangles[i], previous_rect, LV_ALIGN_OUT_RIGHT_MID, spacing, 0);
         }
 
-        lv_obj_add_style(rect, &rect_style, 0);
+        lv_obj_add_style(rectangles[i], &rect_style, 0);
 
         // Update the previous_rect to the current one
-        previous_rect = rect;
+        previous_rect = rectangles[i];
+    }
+}
+
+void blink_rectangle(uint8_t rect_id, bool run) {
+    if(run == true) {
+        lv_anim_t rect_anim;
+        lv_anim_init(&rect_anim);
+        lv_anim_set_var(&rect_anim, rectangles[rect_id]);
+        lv_anim_set_values(&rect_anim, LV_OPA_COVER, LV_OPA_TRANSP);
+        lv_anim_set_duration(&rect_anim, 500);
+        lv_anim_set_playback_duration(&rect_anim, 500);
+        lv_anim_set_repeat_count(&rect_anim, LV_ANIM_REPEAT_INFINITE);
+        lv_anim_set_path_cb(&rect_anim, lv_anim_path_ease_in_out);
+        lv_anim_set_exec_cb(&rect_anim, anim_border_opacity_cb);
+        lv_anim_start(&rect_anim);
+    } else {
+        lv_anim_del(rectangles[rect_id], NULL);
     }
 }
 
@@ -93,33 +113,8 @@ void create_ui(void) {
 
     create_row_rectangles(screen, NUM_RECTANGLES);
 
-    // // Create a simple object (rectangle)
-    // lv_obj_t *rect = lv_obj_create(screen);
-
-    // // Set the size and position of the rectangle
-    // lv_obj_set_size(rect, 80, 120);  // Width and height
-    // lv_obj_align(rect, LV_ALIGN_LEFT_MID, 100, 0); // Position on the screen
-
-    // static lv_style_t rect_style;
-    // lv_style_init(&rect_style);
-
-    // // Set the border properties (color, width)
-    // lv_style_set_border_color(&rect_style, lv_color_black()); // Set border color to black
-    // lv_style_set_border_width(&rect_style, 4);                // Border width of 5 pixels
-    // lv_style_set_radius(&rect_style, 5);
-    // lv_style_set_border_opa(&rect_style, LV_OPA_COVER);       // Set border opacity to fully opaque
-    // lv_style_set_bg_opa(&rect_style, LV_OPA_TRANSP);
-
-    // lv_obj_add_style(rect, &rect_style, 0);
-
-    // lv_anim_t rect_anim;
-    // lv_anim_init(&rect_anim);
-    // lv_anim_set_var(&rect_anim, rect);
-    // lv_anim_set_values(&rect_anim, LV_OPA_COVER, LV_OPA_TRANSP);
-    // lv_anim_set_duration(&rect_anim, 500);
-    // lv_anim_set_playback_duration(&rect_anim, 500);
-    // lv_anim_set_repeat_count(&rect_anim, LV_ANIM_REPEAT_INFINITE);
-    // lv_anim_set_path_cb(&rect_anim, lv_anim_path_ease_in_out);
-    // lv_anim_set_exec_cb(&rect_anim, anim_border_opacity_cb);
-    // lv_anim_start(&rect_anim);
+    blink_rectangle(0, true);
+    blink_rectangle(1, false);
+    blink_rectangle(2, true);
+    blink_rectangle(3, false);
 }
