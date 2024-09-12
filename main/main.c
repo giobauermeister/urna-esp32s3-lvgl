@@ -24,6 +24,6 @@ void app_main(void)
     // Start handling LVGL tasks
     while (1) {
         lv_timer_handler();     // Let LVGL handle UI updates
-        vTaskDelay(pdMS_TO_TICKS(50));  // Delay to avoid overload
+        vTaskDelay(pdMS_TO_TICKS(10));  // Delay to avoid overload
     }
 }
