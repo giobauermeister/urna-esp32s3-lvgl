@@ -1,7 +1,7 @@
 idf_component_register(
     SRCS "lcd_init.c" "main.c" "lvgl_init.c" "ui.c"
     INCLUDE_DIRS "."
-    REQUIRES lvgl esp_lcd
+    REQUIRES lvgl esp_lcd spiffs
 )
 
 set(CMAKE_CXX_STANDARD 17)
