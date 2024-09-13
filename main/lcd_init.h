@@ -2,6 +2,7 @@
 #define LCD_INIT_H
 
 #include "esp_lcd_panel_rgb.h"
+#include "driver/gpio.h"
 
 #define LCD_WIDTH  800
 #define LCD_HEIGHT 480
@@ -11,7 +12,7 @@
 #define GPIO_LCD_HSYNC      39
 #define GPIO_LCD_DE         40
 #define GPIO_LCD_PCLK       0
-#define GPIO_LCD_BACKLIGHT  2
+#define GPIO_LCD_BACKLIGHT  GPIO_NUM_2
 
 #define GPIO_LCD_R3         45
 #define GPIO_LCD_R4         48
