@@ -33,8 +33,8 @@ void anim_border_opacity_cb(void *rect_obj, int32_t opacity) {
 
 void create_row_rectangles(lv_obj_t *parent, int16_t n_rect) {
     int16_t rect_width = 70;
-    int16_t rect_height = 100;
-    int16_t spacing = 14;
+    int16_t rect_height = 95;
+    int16_t spacing = 10;
     lv_obj_t *previous_rect = NULL;
 
     // Create style for rectangles
@@ -42,7 +42,7 @@ void create_row_rectangles(lv_obj_t *parent, int16_t n_rect) {
     lv_style_init(&rect_style);
     lv_style_set_border_color(&rect_style, lv_color_black()); // Set border color to black
     lv_style_set_border_width(&rect_style, 3);                // Border width of 4 pixels
-    lv_style_set_radius(&rect_style, 5);                      // Set border radius to 5
+    lv_style_set_radius(&rect_style, 3);                      // Set border radius to 5
     lv_style_set_border_opa(&rect_style, LV_OPA_COVER);       // Set border opacity to fully opaque
     lv_style_set_bg_opa(&rect_style, LV_OPA_TRANSP);          // Set background opacity to transparent
 
@@ -70,8 +70,8 @@ void blink_rectangle(uint8_t rect_id, bool run) {
         lv_anim_init(&rect_anim);
         lv_anim_set_var(&rect_anim, rectangles[rect_id]);
         lv_anim_set_values(&rect_anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_duration(&rect_anim, 500);
-        lv_anim_set_playback_duration(&rect_anim, 500);
+        lv_anim_set_duration(&rect_anim, 600);
+        lv_anim_set_playback_duration(&rect_anim, 400);
         lv_anim_set_repeat_count(&rect_anim, LV_ANIM_REPEAT_INFINITE);
         lv_anim_set_path_cb(&rect_anim, lv_anim_path_ease_in_out);
         lv_anim_set_exec_cb(&rect_anim, anim_border_opacity_cb);
@@ -155,7 +155,7 @@ void create_ui(void) {
     lv_obj_align(ui_lb_press_key, LV_ALIGN_TOP_LEFT, 5, 415);
 
     lv_obj_t *ui_lb_confirm = lv_label_create(screen);
-    lv_label_set_text(ui_lb_confirm, "CONFIRMA para PROSEGUIR");
+    lv_label_set_text(ui_lb_confirm, "CONFIRMA para PROSSEGUIR");
     lv_obj_set_style_text_font(ui_lb_confirm, &lv_font_montserrat_20, LV_PART_MAIN);
     lv_obj_align(ui_lb_confirm, LV_ALIGN_TOP_LEFT, 25, 435);
 
