@@ -26,8 +26,8 @@ void app_main(void)
     init_spiffs();
     // list_spiffs_files();
 
-    play_urna_sound("/spiffs/urna_sound_long.wav");
-    // play_urna_sound("/spiffs/urna_sound_short.wav");
+    play_sound("/spiffs/urna_sound_long.wav");
+    // play_sound("/spiffs/urna_sound_short.wav");
 
     init_lcd_panel();
     init_lvgl();

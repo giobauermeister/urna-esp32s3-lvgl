@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include <dirent.h>
 
-void play_urna_sound(const char* file_path)
+void play_sound(const char* file_path)
 {
     FILE *f = fopen(file_path, "rb");
     if(f == NULL) {
