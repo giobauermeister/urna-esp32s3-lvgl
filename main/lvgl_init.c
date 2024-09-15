@@ -5,6 +5,8 @@
 #include "esp_heap_caps.h"
 #include "esp_mac.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define LVGL_TICK_PERIOD_MS 1
 
@@ -30,6 +32,15 @@ static esp_err_t lvgl_port_tick_init(void)
     esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     return esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000);
+}
+
+// LVGL task function
+void lvgl_timer_handler_task(void *pvParameter)
+{
+    while (1) {
+        lv_timer_handler();   // Let LVGL handle UI updates
+        vTaskDelay(pdMS_TO_TICKS(10));  // Delay to avoid overload (adjust delay as needed)
+    }
 }
 
 // Initialize LVGL and setup display buffers

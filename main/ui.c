@@ -25,7 +25,7 @@ void set_screen_background_white(lv_obj_t *screen) {
 void anim_border_opacity_cb(void *rect_obj, int32_t opacity) {
     lv_obj_t *rect = (lv_obj_t *)rect_obj;
 
-    ESP_LOGI(TAG, "Updating border opacity: %ld", opacity);
+    // ESP_LOGI(TAG, "Updating border opacity: %ld", opacity);
 
     // Apply the new border opacity to the rectangle
     lv_obj_set_style_border_opa(rect, opacity, 0);
