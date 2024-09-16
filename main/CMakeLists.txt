@@ -1,5 +1,17 @@
+set(SRC_FILES
+    "main.c"
+    "keypad.c"
+    "lcd_init.c"
+    "lvgl_init.c"
+    "i2s_init.c"
+    "i2c_init.c"
+    "ui.c"
+    "sound.c"
+    "spiffs.c"
+)
+
 idf_component_register(
-    SRCS "lcd_init.c" "main.c" "lvgl_init.c" "i2s_init.c" "ui.c" "sound.c" "spiffs.c"
+    SRCS ${SRC_FILES}
     INCLUDE_DIRS "."
     REQUIRES lvgl esp_lcd spiffs
 )

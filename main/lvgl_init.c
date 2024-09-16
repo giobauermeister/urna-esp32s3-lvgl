@@ -65,7 +65,9 @@ void init_lvgl(void) {
     lv_display_set_buffers(disp, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_FULL);
 }
 
-
-
-
+void create_lvgl_task(void)
+{
+    // Create a task for LVGL handling
+    xTaskCreate(lvgl_timer_handler_task, "LVGL Task", 4096, NULL, 5, NULL);
+}
 
