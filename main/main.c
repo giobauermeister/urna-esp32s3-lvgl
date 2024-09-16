@@ -31,13 +31,13 @@ void app_main(void)
 
     // Create UI elements
     create_ui();
+
+    create_keypad_interrupt_task();
     
     vTaskDelay(pdMS_TO_TICKS(500));
     init_lcd_backlight();
 
     create_lvgl_task();
-
-    create_keypad_interrupt_task();
 
     // Start handling LVGL tasks
     while (1) {

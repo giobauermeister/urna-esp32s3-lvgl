@@ -10,6 +10,7 @@
 #define KEYPAD_COLS 4
 
 extern TaskHandle_t keypad_task_handle;
+extern QueueHandle_t keypad_queue;
 
 void create_keypad_interrupt_task(void);
 

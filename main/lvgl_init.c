@@ -7,6 +7,8 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "keypad.h"
+#include "ui.h"
 
 #define LVGL_TICK_PERIOD_MS 1
 
@@ -37,7 +39,11 @@ static esp_err_t lvgl_port_tick_init(void)
 // LVGL task function
 void lvgl_timer_handler_task(void *pvParameter)
 {
+    char key;
     while (1) {
+        if (keypad_queue != NULL && xQueueReceive(keypad_queue, &key, pdMS_TO_TICKS(10)) == pdPASS) {
+            update_ui_keypress(key);
+        }
         lv_timer_handler();   // Let LVGL handle UI updates
         vTaskDelay(pdMS_TO_TICKS(10));  // Delay to avoid overload (adjust delay as needed)
     }

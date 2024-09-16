@@ -4,10 +4,11 @@
 
 static const char* TAG = "UI";
 
-#define NUM_RECTANGLES 4  // Number of rectangles
-
 // Declare an array to hold the rectangle objects
 lv_obj_t *rectangles[NUM_RECTANGLES];
+lv_obj_t *lb_rect_input_numbers[NUM_RECTANGLES];
+
+int lb_rect_input_number = 0;
 
 void set_screen_background_white(lv_obj_t *screen) {
     static lv_style_t screen_style;
@@ -48,6 +49,7 @@ void create_row_rectangles(lv_obj_t *parent, int16_t n_rect) {
 
     for (uint8_t i = 0; i < n_rect; i++) {
         rectangles[i] = lv_obj_create(parent);
+        lb_rect_input_numbers[i] = lv_label_create(parent);
 
         lv_obj_set_size(rectangles[i], rect_width, rect_height);
 
@@ -58,6 +60,11 @@ void create_row_rectangles(lv_obj_t *parent, int16_t n_rect) {
         }
 
         lv_obj_add_style(rectangles[i], &rect_style, 0);
+
+        lv_obj_set_style_text_font(lb_rect_input_numbers[i], &lv_font_montserrat_48, LV_PART_MAIN);
+        lv_obj_align_to(lb_rect_input_numbers[i], rectangles[i], LV_ALIGN_LEFT_MID, 0, 0);
+        lv_label_set_text(lb_rect_input_numbers[i], "");
+        //lv_label_set_text_fmt(lb_rect_input_numbers[i], "%d", i);
 
         // Update the previous_rect to the current one
         previous_rect = rectangles[i];
@@ -78,7 +85,35 @@ void blink_rectangle(uint8_t rect_id, bool run) {
         lv_anim_start(&rect_anim);
     } else {
         lv_anim_del(rectangles[rect_id], NULL);
+        lv_obj_set_style_border_opa(rectangles[rect_id], LV_OPA_COVER, LV_PART_MAIN);
     }
+}
+
+void update_ui_keypress(char key)
+{
+    ESP_LOGI(TAG, "Received key: %c", key);
+
+    if(key == 'B') // CORRIGE key pressed
+    {
+        for (size_t i = 0; i < 4; i++)
+        {
+            lv_label_set_text(lb_rect_input_numbers[i], "");
+            blink_rectangle(i, false);
+        }
+        lb_rect_input_number = 0;
+        blink_rectangle(lb_rect_input_number, true);
+        return;
+    }
+    lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
+    lb_rect_input_number++;
+    if (lb_rect_input_number >= 4) {
+        blink_rectangle(lb_rect_input_number-1, false);
+        lb_rect_input_number = 0;
+        blink_rectangle(lb_rect_input_number, true);
+        return;
+    }
+    blink_rectangle(lb_rect_input_number, true);
+    blink_rectangle(lb_rect_input_number-1, false);
 }
 
 // Create UI elements (buttons, labels, etc.)

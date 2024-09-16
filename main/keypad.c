@@ -3,10 +3,12 @@
 #include "driver/i2c_master.h"
 #include "i2c_init.h"
 #include "freertos/FreeRTOS.h"
+#include "ui.h"
 
 static const char* TAG = "Keypad";
 
 TaskHandle_t keypad_task_handle = NULL;
+QueueHandle_t keypad_queue;  // Queue for keys
 
 // Write to PCF8574 function
 esp_err_t pcf8574_write(uint8_t data)
@@ -79,13 +81,16 @@ void keypad_task(void *arg)
         ESP_ERROR_CHECK(pcf8574_write(0xF0));
         if(key != '\0') {
             ESP_LOGI(TAG, "Key pressed: %c", key);
+            // update_ui_keypress(key);
+            xQueueSend(keypad_queue, &key, portMAX_DELAY);
         }
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }    
 }
 
 void create_keypad_interrupt_task(void)
 {
+    keypad_queue = xQueueCreate(10, sizeof(char));
     ESP_LOGI(TAG, "Task created");
     xTaskCreate(keypad_task, "keypad_task", 4096, NULL, 10, &keypad_task_handle);
     setup_interrupt(keypad_task_handle);
