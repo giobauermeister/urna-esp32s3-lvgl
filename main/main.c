@@ -11,6 +11,7 @@
 #include "i2s_init.h"
 #include "i2c_init.h"
 #include "spiffs.h"
+#include "sd_init.h"
 #include "sound.h"
 #include "keypad.h"
 
@@ -20,6 +21,7 @@ void app_main(void)
 
     i2s_init();
     i2c_master_init();
+    init_sd_card();
     init_spiffs();
     // list_spiffs_files();
 

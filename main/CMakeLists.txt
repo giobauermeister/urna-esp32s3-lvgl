@@ -8,12 +8,13 @@ set(SRC_FILES
     "ui.c"
     "sound.c"
     "spiffs.c"
+    "sd_init.c"
 )
 
 idf_component_register(
     SRCS ${SRC_FILES}
     INCLUDE_DIRS "."
-    REQUIRES lvgl esp_lcd spiffs
+    REQUIRES lvgl esp_lcd spiffs fatfs esp_driver_sdspi
 )
 
 set(CMAKE_CXX_STANDARD 17)
