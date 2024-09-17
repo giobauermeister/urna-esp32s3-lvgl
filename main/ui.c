@@ -8,7 +8,17 @@ static const char* TAG = "UI";
 lv_obj_t *rectangles[NUM_RECTANGLES];
 lv_obj_t *lb_rect_input_numbers[NUM_RECTANGLES];
 
+lv_obj_t *lb_candidate_role;
+lv_obj_t *lb_cadidate_name;
+lv_obj_t *lb_canditate_party;
+
+lv_obj_t *ui_bottom_line;
+lv_obj_t *ui_lb_press_key;
+lv_obj_t *ui_lb_confirm;
+lv_obj_t *ui_lb_restart;
+
 int lb_rect_input_number = 0;
+bool vote_state = false;
 
 void set_screen_background_white(lv_obj_t *screen) {
     static lv_style_t screen_style;
@@ -93,6 +103,39 @@ void update_ui_keypress(char key)
 {
     ESP_LOGI(TAG, "Received key: %c", key);
 
+    if(vote_state == false && (key == 'A' || key == 'C' || key == 'D' || key == '*' || key == '#')) {
+        return;
+    }
+
+    if(vote_state == true)
+    {
+        if(key == 'B') // CORRIGE key pressed
+        {
+            for (size_t i = 0; i < 4; i++)
+            {
+                lv_label_set_text(lb_rect_input_numbers[i], "");
+                blink_rectangle(i, false);
+            }
+            lb_rect_input_number = 0;
+            vote_state = false;
+            blink_rectangle(lb_rect_input_number, true);
+
+            lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+            return;
+        }
+
+        if(key == 'A') // CONFIRMA key pressed
+        {
+            ESP_LOGI(TAG, "Confirm vote!");
+        }
+    }
+
     if(key == 'B') // CORRIGE key pressed
     {
         for (size_t i = 0; i < 4; i++)
@@ -101,19 +144,42 @@ void update_ui_keypress(char key)
             blink_rectangle(i, false);
         }
         lb_rect_input_number = 0;
+        vote_state = false;
         blink_rectangle(lb_rect_input_number, true);
+
+        lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
         return;
     }
-    lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
-    lb_rect_input_number++;
-    if (lb_rect_input_number >= 4) {
+
+    if(lb_rect_input_number < 3)
+    {
+        lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
+        lb_rect_input_number++;
+        blink_rectangle(lb_rect_input_number, true);
         blink_rectangle(lb_rect_input_number-1, false);
-        lb_rect_input_number = 0;
-        blink_rectangle(lb_rect_input_number, true);
         return;
     }
-    blink_rectangle(lb_rect_input_number, true);
-    blink_rectangle(lb_rect_input_number-1, false);
+
+    if(lb_rect_input_number == 3 && vote_state == false)
+    {
+        lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
+        blink_rectangle(lb_rect_input_number, false);
+        vote_state = true;
+
+        lv_obj_clear_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
 }
 
 // Create UI elements (buttons, labels, etc.)
@@ -128,12 +194,12 @@ void create_ui(void) {
     lv_obj_t *ui_lb_your_vote_for = lv_label_create(screen);
     lv_label_set_text(ui_lb_your_vote_for, "SEU VOTO PARA");
     lv_obj_set_style_text_font(ui_lb_your_vote_for, &lv_font_montserrat_20, LV_PART_MAIN);
-    lv_obj_align(ui_lb_your_vote_for, LV_ALIGN_TOP_LEFT, 10, 15);
+    lv_obj_align(ui_lb_your_vote_for, LV_ALIGN_TOP_LEFT, 10, 25);
 
-    lv_obj_t *lb_candidate_role = lv_label_create(screen);
-    lv_label_set_text(lb_candidate_role, "Prefeito");
-    lv_obj_set_style_text_font(lb_candidate_role, &lv_font_montserrat_44, LV_PART_MAIN);
-    lv_obj_align(lb_candidate_role, LV_ALIGN_TOP_LEFT, 150, 100);
+    lb_candidate_role = lv_label_create(screen);
+    lv_label_set_text(lb_candidate_role, "Vereador");
+    lv_obj_set_style_text_font(lb_candidate_role, &lv_font_montserrat_46, LV_PART_MAIN);
+    lv_obj_align(lb_candidate_role, LV_ALIGN_TOP_LEFT, 120, 90);
 
     lv_obj_t *ui_lb_number = lv_label_create(screen);
     lv_label_set_text(ui_lb_number, "Numero:");
@@ -145,20 +211,22 @@ void create_ui(void) {
     lv_obj_set_style_text_font(ui_lb_name, &lv_font_montserrat_22, LV_PART_MAIN);
     lv_obj_align(ui_lb_name, LV_ALIGN_TOP_LEFT, 5, 315);
 
-    lv_obj_t *lb_cadidate_name = lv_label_create(screen);
+    lb_cadidate_name = lv_label_create(screen);
     lv_label_set_text(lb_cadidate_name, "Giovanni B Santana");
     lv_obj_set_style_text_font(lb_cadidate_name, &lv_font_montserrat_26, LV_PART_MAIN);
     lv_obj_align_to(lb_cadidate_name, ui_lb_name, LV_ALIGN_OUT_RIGHT_MID, 45, 0);
+    lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
 
     lv_obj_t *ui_lb_party = lv_label_create(screen);
     lv_label_set_text(ui_lb_party, "Partido:");
     lv_obj_set_style_text_font(ui_lb_party, &lv_font_montserrat_22, LV_PART_MAIN);
     lv_obj_align(ui_lb_party, LV_ALIGN_TOP_LEFT, 5, 355);
 
-    lv_obj_t *lb_party = lv_label_create(screen);
-    lv_label_set_text(lb_party, "Exemplo");
-    lv_obj_set_style_text_font(lb_party, &lv_font_montserrat_26, LV_PART_MAIN);
-    lv_obj_align_to(lb_party, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
+    lb_canditate_party = lv_label_create(screen);
+    lv_label_set_text(lb_canditate_party, "Exemplo");
+    lv_obj_set_style_text_font(lb_canditate_party, &lv_font_montserrat_26, LV_PART_MAIN);
+    lv_obj_align_to(lb_canditate_party, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
+    lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
 
     create_row_rectangles(screen, NUM_RECTANGLES);
 
@@ -168,24 +236,28 @@ void create_ui(void) {
     blink_rectangle(3, false);
 
     // Create line at the bottom
-    lv_obj_t *ui_bottom_line = lv_obj_create(screen);
+    ui_bottom_line = lv_obj_create(screen);
     lv_obj_set_size(ui_bottom_line, 800, 3);
     lv_obj_set_pos(ui_bottom_line, 0, 410);
     lv_obj_set_style_border_color(ui_bottom_line, lv_color_black(), LV_PART_MAIN);
+    lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_t *ui_lb_press_key = lv_label_create(screen);
+    ui_lb_press_key = lv_label_create(screen);
     lv_label_set_text(ui_lb_press_key, "Aperte a tecla:");
     lv_obj_set_style_text_font(ui_lb_press_key, &lv_font_montserrat_20, LV_PART_MAIN);
     lv_obj_align(ui_lb_press_key, LV_ALIGN_TOP_LEFT, 5, 415);
+    lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_t *ui_lb_confirm = lv_label_create(screen);
-    lv_label_set_text(ui_lb_confirm, "CONFIRMA para PROSSEGUIR");
+    ui_lb_confirm = lv_label_create(screen);
+    lv_label_set_text(ui_lb_confirm, "A para CONFIRMAR este voto");
     lv_obj_set_style_text_font(ui_lb_confirm, &lv_font_montserrat_20, LV_PART_MAIN);
-    lv_obj_align(ui_lb_confirm, LV_ALIGN_TOP_LEFT, 25, 435);
+    lv_obj_align(ui_lb_confirm, LV_ALIGN_TOP_LEFT, 45, 435);
+    lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_t *ui_lb_restart = lv_label_create(screen);
-    lv_label_set_text(ui_lb_restart, "CORRIGE para REINICIAR este voto");
+    ui_lb_restart = lv_label_create(screen);
+    lv_label_set_text(ui_lb_restart, "B para REINICIAR este voto");
     lv_obj_set_style_text_font(ui_lb_restart, &lv_font_montserrat_20, LV_PART_MAIN);
     lv_obj_align(ui_lb_restart, LV_ALIGN_TOP_LEFT, 45, 455);
+    lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
 
 }
