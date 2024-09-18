@@ -5,7 +5,7 @@
 
 static const char* TAG = "CANDIDATE";
 
-esp_err_t add_candidate(const char* name, const char* number, const char* role, int party_id)
+esp_err_t add_candidate(Candidate new_candidate)
 {
     ESP_LOGI(TAG, "Add candidate");
     int current_id = 1;
@@ -36,10 +36,10 @@ esp_err_t add_candidate(const char* name, const char* number, const char* role, 
 
     cJSON* candidate_obj = cJSON_CreateObject();
     cJSON_AddNumberToObject(candidate_obj, "id", current_id);
-    cJSON_AddStringToObject(candidate_obj, "name", name);
-    cJSON_AddStringToObject(candidate_obj, "number", number);
-    cJSON_AddStringToObject(candidate_obj, "role", role);
-    cJSON_AddNumberToObject(candidate_obj, "party_id", party_id);
+    cJSON_AddStringToObject(candidate_obj, "name", new_candidate.name);
+    cJSON_AddStringToObject(candidate_obj, "number", new_candidate.number);
+    cJSON_AddStringToObject(candidate_obj, "role", new_candidate.role);
+    cJSON_AddNumberToObject(candidate_obj, "party_id", new_candidate.party_id);
 
     char* rendered_json = cJSON_PrintUnformatted(candidate_obj);
     ESP_LOGI(TAG, "%s", rendered_json);
@@ -57,7 +57,7 @@ esp_err_t add_candidate(const char* name, const char* number, const char* role, 
     return ESP_OK;
 }
 
-esp_err_t add_party(const char* name)
+esp_err_t add_party(Party new_party)
 {
     ESP_LOGI(TAG, "Add party");
 
@@ -89,7 +89,7 @@ esp_err_t add_party(const char* name)
 
     cJSON* party_obj = cJSON_CreateObject();
     cJSON_AddNumberToObject(party_obj, "id", current_id);
-    cJSON_AddStringToObject(party_obj, "name", name);
+    cJSON_AddStringToObject(party_obj, "name", new_party.name);
 
     char* rendered_json = cJSON_PrintUnformatted(party_obj);
     ESP_LOGI(TAG, "%s", rendered_json);

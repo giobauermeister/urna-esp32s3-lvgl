@@ -3,7 +3,20 @@
 
 #include "esp_err.h"
 
-esp_err_t add_candidate(const char* name, const char* number, const char* role, int party_id);
-esp_err_t add_party(const char* name);
+typedef struct 
+{
+    const char* name;
+    const char* number;
+    const char* role;
+    int party_id;
+} Candidate;
+
+typedef struct
+{
+    const char* name;
+} Party;
+
+esp_err_t add_candidate(Candidate new_dandidate);
+esp_err_t add_party(Party new_party);
 
 #endif // CANDIDATE_H

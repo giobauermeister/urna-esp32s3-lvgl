@@ -16,6 +16,17 @@
 #include "keypad.h"
 #include "candidate.h"
 
+Candidate candidate1 = {
+    .name = "Giovanni",
+    .number = "1234",
+    .role = "Vereador",
+    .party_id = 1001,
+};
+
+Party party1 = {
+    .name = "Partido1",
+};
+
 void app_main(void)
 {
     printf("Hello World!\n");
@@ -24,8 +35,8 @@ void app_main(void)
     i2c_master_init();
     init_sd_card();
 
-    add_candidate("Candidato1", "1234", "Prefeito", 1001);
-    add_party("Partido1");
+    add_candidate(candidate1);
+    add_party(party1);
     
     init_spiffs();
     // list_spiffs_files();
