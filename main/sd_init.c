@@ -3,6 +3,7 @@
 #include "sdmmc_cmd.h"
 #include "esp_vfs_fat.h"
 #include "esp_log.h"
+#include <sys/stat.h>
 
 static const char* TAG = "SDCARD";
 
@@ -39,13 +40,36 @@ esp_err_t init_sd_card(void)
     slot_cfg.host_id = (spi_host_device_t)host.slot;
 
     sdmmc_card_t *card;
-    ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_cfg, &mount_cfg, &card);
+    ret = esp_vfs_fat_sdspi_mount("/sd", &host, &slot_cfg, &mount_cfg, &card);
     if(ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to mount filesystem");
         return ret;
     }
 
     sdmmc_card_print_info(stdout, card);
+    ESP_LOGI(TAG, "SD card mounted successfully");
+
+    // Test writing to the SD card
+    FILE* f = fopen("/sd/test.txt", "w");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for writing");
+        return ESP_FAIL;
+    }
+
+    fprintf(f, "This is a test write to the SD card.\n");
+    fclose(f);
+    ESP_LOGI(TAG, "File written successfully to the SD card");
 
     return ESP_OK;
+}
+
+bool is_sd_card_mounted(void) {
+    struct stat st;
+    if (stat("/sdcard", &st) == 0) {
+        ESP_LOGI(TAG, "SD card is mounted!");
+        return true;
+    } else {
+        ESP_LOGE(TAG, "SD card is not mounted");
+        return false;
+    }
 }

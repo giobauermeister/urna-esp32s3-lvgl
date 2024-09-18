@@ -14,6 +14,7 @@
 #include "sd_init.h"
 #include "sound.h"
 #include "keypad.h"
+#include "candidate.h"
 
 void app_main(void)
 {
@@ -22,6 +23,10 @@ void app_main(void)
     i2s_init();
     i2c_master_init();
     init_sd_card();
+
+    add_candidate("Candidato1", "1234", "Prefeito", 1001);
+    add_party("Partido1");
+    
     init_spiffs();
     // list_spiffs_files();
 

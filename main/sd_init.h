@@ -10,5 +10,6 @@
 #define SD_CS_PIN       GPIO_NUM_10
 
 esp_err_t init_sd_card(void);
+bool is_sd_card_mounted(void);
 
 #endif // SD_INIT_H

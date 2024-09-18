@@ -10,7 +10,7 @@ lv_obj_t *lb_rect_input_numbers[NUM_RECTANGLES];
 
 lv_obj_t *lb_candidate_role;
 lv_obj_t *lb_cadidate_name;
-lv_obj_t *lb_canditate_party;
+lv_obj_t *lb_candidate_party;
 
 lv_obj_t *ui_bottom_line;
 lv_obj_t *ui_lb_press_key;
@@ -121,7 +121,7 @@ void update_ui_keypress(char key)
             blink_rectangle(lb_rect_input_number, true);
 
             lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -148,7 +148,7 @@ void update_ui_keypress(char key)
         blink_rectangle(lb_rect_input_number, true);
 
         lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -173,7 +173,7 @@ void update_ui_keypress(char key)
         vote_state = true;
 
         lv_obj_clear_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -222,11 +222,11 @@ void create_ui(void) {
     lv_obj_set_style_text_font(ui_lb_party, &lv_font_montserrat_22, LV_PART_MAIN);
     lv_obj_align(ui_lb_party, LV_ALIGN_TOP_LEFT, 5, 355);
 
-    lb_canditate_party = lv_label_create(screen);
-    lv_label_set_text(lb_canditate_party, "Exemplo");
-    lv_obj_set_style_text_font(lb_canditate_party, &lv_font_montserrat_26, LV_PART_MAIN);
-    lv_obj_align_to(lb_canditate_party, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
-    lv_obj_add_flag(lb_canditate_party, LV_OBJ_FLAG_HIDDEN);
+    lb_candidate_party = lv_label_create(screen);
+    lv_label_set_text(lb_candidate_party, "Exemplo");
+    lv_obj_set_style_text_font(lb_candidate_party, &lv_font_montserrat_26, LV_PART_MAIN);
+    lv_obj_align_to(lb_candidate_party, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
+    lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
 
     create_row_rectangles(screen, NUM_RECTANGLES);
 
