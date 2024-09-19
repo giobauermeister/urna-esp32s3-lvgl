@@ -37,6 +37,11 @@ void app_main(void)
 
     add_candidate(candidate1);
     add_party(party1);
+
+    // delete_candidate_by_id(1);
+    // delete_candidate_by_id(2);
+    // delete_candidate_by_id(3);
+    // delete_candidate_by_id(5);
     
     init_spiffs();
     // list_spiffs_files();

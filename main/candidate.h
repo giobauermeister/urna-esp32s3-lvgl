@@ -17,6 +17,7 @@ typedef struct
 } Party;
 
 esp_err_t add_candidate(Candidate new_dandidate);
+esp_err_t delete_candidate_by_id(int candidate_id);
 esp_err_t add_party(Party new_party);
 
 #endif // CANDIDATE_H
