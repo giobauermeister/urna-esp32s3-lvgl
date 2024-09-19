@@ -3,16 +3,14 @@
 
 #include "esp_err.h"
 
-typedef struct 
-{
+typedef struct {
     const char* name;
     const char* number;
     const char* role;
     int party_id;
 } Candidate;
 
-typedef struct
-{
+typedef struct {
     const char* name;
 } Party;
 
