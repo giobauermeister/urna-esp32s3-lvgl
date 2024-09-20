@@ -19,8 +19,8 @@
 Candidate candidate1 = {
     .name = "Giovanni",
     .number = "1234",
-    .role = "Vereador",
-    .party_id = 1001,
+    .role_id = 1,
+    .party_id = 1,
 };
 
 Party party1 = {

@@ -7,7 +7,7 @@ typedef struct {
     int id;
     const char* name;
     const char* number;
-    const char* role;
+    int role_id;
     int party_id;
 } Candidate;
 
@@ -29,5 +29,6 @@ esp_err_t del_party_by_id(int party_id);
 esp_err_t check_party_exists(int party_id);
 esp_err_t add_role(Role new_role);
 esp_err_t del_role_by_id(int role_id);
+esp_err_t check_role_exists(int role_id);
 
 #endif // CANDIDATE_H

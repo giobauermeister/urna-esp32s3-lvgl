@@ -18,9 +18,14 @@ esp_err_t add_candidate(Candidate new_candidate)
 {
     ESP_LOGI(TAG_ADD_CANDIDATE, "Add candidate");
 
+    if(check_role_exists(new_candidate.role_id) != ESP_OK) {
+        ESP_LOGE(TAG_ADD_CANDIDATE, "Role with id %d does not exist, cannot add candidate", new_candidate.role_id);
+        return ESP_FAIL;
+    }
+
     if(check_party_exists(new_candidate.party_id) != ESP_OK) {
         ESP_LOGE(TAG_ADD_CANDIDATE, "Party with id %d does not exist, cannot add candidate", new_candidate.party_id);
-        return ESP_ERR_NOT_FOUND;
+        return ESP_FAIL;
     }
 
     int current_id = 1;
@@ -56,7 +61,7 @@ esp_err_t add_candidate(Candidate new_candidate)
     cJSON_AddNumberToObject(candidate_obj, "id", current_id);
     cJSON_AddStringToObject(candidate_obj, "name", new_candidate.name);
     cJSON_AddStringToObject(candidate_obj, "number", new_candidate.number);
-    cJSON_AddStringToObject(candidate_obj, "role", new_candidate.role);
+    cJSON_AddNumberToObject(candidate_obj, "role", new_candidate.role_id);
     cJSON_AddNumberToObject(candidate_obj, "party_id", new_candidate.party_id);
 
     char* rendered_json = cJSON_PrintUnformatted(candidate_obj);
@@ -145,7 +150,7 @@ esp_err_t add_party(Party new_party)
 {
     ESP_LOGI(TAG_ADD_PARTY, "Add party");
 
-    int current_id = 1001;
+    int current_id = 1;
 
     FILE *f = fopen("/sd/parties.jdb", "r+");
     if(f != NULL) {
@@ -163,7 +168,7 @@ esp_err_t add_party(Party new_party)
         }
         current_id++;
     } else {
-        // File does not exist, create new file and use id = 1001
+        // File does not exist, create new file and use id = 1
         f = fopen("/sd/parties.jdb", "w");
         if(f == NULL) {
             ESP_LOGE(TAG_ADD_PARTY, "Failed to open file parties.json for writing");
@@ -261,7 +266,7 @@ esp_err_t add_role(Role new_role)
 {
     ESP_LOGI(TAG_ADD_ROLE, "Add role");
 
-    int current_id = 1001;
+    int current_id = 1;
 
     FILE *f = fopen("/sd/roles.jdb", "r+");
     if(f != NULL) {
@@ -279,7 +284,7 @@ esp_err_t add_role(Role new_role)
         }
         current_id++;
     } else {
-        // File does not exist, create new file and use id = 1001
+        // File does not exist, create new file and use id = 1
         f = fopen("/sd/roles.jdb", "w");
         if(f == NULL) {
             ESP_LOGE(TAG_ADD_ROLE, "Failed to open file parties.json for writing");
@@ -380,7 +385,7 @@ esp_err_t check_party_exists(int party_id)
     FILE *f = fopen("/sd/parties.jdb", "r");
     if(f == NULL) {
         ESP_LOGE(TAG_CHECK_PARTY, "Could not open file parties.jdb for reading");
-        return ESP_ERR_NOT_FOUND;
+        return ESP_FAIL;
     }
 
     char line[256];
@@ -404,6 +409,40 @@ esp_err_t check_party_exists(int party_id)
 
     fclose(f);
     ESP_LOGE(TAG_CHECK_PARTY, "Party with id %d not found", party_id);
+    return ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t check_role_exists(int role_id)
+{
+    ESP_LOGI(TAG_CHECK_ROLE, "Check if role with id %d exists", role_id);
+
+    FILE *f = fopen("/sd/roles.jdb", "r");
+    if(f == NULL) {
+        ESP_LOGE(TAG_CHECK_ROLE, "Could not open file roles.jdb for reading");
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    while(fgets(line, sizeof(line), f)) {
+        cJSON *role_obj = cJSON_Parse(line);
+        if(role_obj == NULL) {
+            ESP_LOGE(TAG_CHECK_ROLE, "Failed to parse JSON line");
+            continue;
+        }
+
+        int id = cJSON_GetObjectItem(role_obj, "id")->valueint;
+        if(id == role_id) {
+            ESP_LOGI(TAG_CHECK_ROLE, "Role with id %d found", role_id);
+            cJSON_Delete(role_obj);
+            fclose(f);
+            return ESP_OK;
+        }
+
+        cJSON_Delete(role_obj);
+    }
+
+    fclose(f);
+    ESP_LOGE(TAG_CHECK_ROLE, "Role with id %d not found", role_id);
     return ESP_ERR_NOT_FOUND;
 }
 
