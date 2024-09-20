@@ -10,12 +10,24 @@ set(SRC_FILES
     "spiffs.c"
     "sd_init.c"
     "candidate.c"
+    "wifi.c"
+)
+
+set(REQ_COMPONENTS
+    lvgl
+    esp_lcd
+    spiffs
+    esp_driver_sdspi
+    fatfs
+    json
+    nvs_flash
+    esp_wifi
 )
 
 idf_component_register(
     SRCS ${SRC_FILES}
     INCLUDE_DIRS "."
-    REQUIRES lvgl esp_lcd spiffs fatfs esp_driver_sdspi json
+    REQUIRES ${REQ_COMPONENTS}
 )
 
 set(CMAKE_CXX_STANDARD 17)

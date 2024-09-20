@@ -15,6 +15,7 @@
 #include "sound.h"
 #include "keypad.h"
 #include "candidate.h"
+#include "wifi.h"
 
 Candidate candidate1 = {
     .name = "Giovanni",
@@ -66,7 +67,8 @@ void app_main(void)
 
     create_lvgl_task();
 
-    // Start handling LVGL tasks
+    wifi_init_sta();
+
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));  // Delay to avoid overload
     }
