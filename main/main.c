@@ -27,6 +27,10 @@ Party party1 = {
     .name = "Partido1",
 };
 
+Role role1 = {
+    .name = "Prefeito",
+};
+
 void app_main(void)
 {
     printf("Hello World!\n");
@@ -38,10 +42,10 @@ void app_main(void)
     add_candidate(candidate1);
     add_party(party1);
 
-    // delete_candidate_by_id(1);
-    // delete_candidate_by_id(2);
-    // delete_candidate_by_id(3);
-    // delete_candidate_by_id(5);
+    // del_candidate_by_id(1);
+    // del_candidate_by_id(2);
+    // del_candidate_by_id(3);
+    // del_candidate_by_id(5);
     
     init_spiffs();
     // list_spiffs_files();

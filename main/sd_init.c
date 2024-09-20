@@ -50,7 +50,7 @@ esp_err_t init_sd_card(void)
     ESP_LOGI(TAG, "SD card mounted successfully");
 
     // Test writing to the SD card
-    FILE* f = fopen("/sd/test.txt", "w");
+    FILE *f = fopen("/sd/test.txt", "w");
     if (f == NULL) {
         ESP_LOGE(TAG, "Failed to open file for writing");
         return ESP_FAIL;
