@@ -2,8 +2,8 @@
 #define WIFI_H
 
 // Wi-Fi credentials
-#define WIFI_SSID      "your_ssid"
-#define WIFI_PASSWORD  "your_password"
+#define WIFI_SSID      "xxxx"
+#define WIFI_PASSWORD  "xxxx"
 
 void wifi_init_sta();
 

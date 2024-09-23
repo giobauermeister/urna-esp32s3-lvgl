@@ -54,6 +54,8 @@ void app_main(void)
     play_sound("/spiffs/urna_sound_long.wav");
     // play_sound("/spiffs/urna_sound_short.wav");
 
+    wifi_init_sta();
+
     init_lcd_panel();
     init_lvgl();
 
@@ -66,8 +68,6 @@ void app_main(void)
     init_lcd_backlight();
 
     create_lvgl_task();
-
-    wifi_init_sta();
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));  // Delay to avoid overload
