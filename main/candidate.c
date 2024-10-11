@@ -38,10 +38,16 @@ esp_err_t add_candidate(Candidate new_candidate)
         while(fgets(line, sizeof(line), f)) {
             candidate_obj = cJSON_Parse(line);
             if(candidate_obj) {
-                int id = cJSON_GetObjectItem(candidate_obj, "id")->valueint;
-                if(id > current_id) {
-                    current_id = id;
-                }
+                // Try to get the "id" field and ensure it's a valid number
+                cJSON *id_item = cJSON_GetObjectItem(candidate_obj, "id");
+                if(cJSON_IsNumber(id_item)) {
+                    int id = id_item->valueint;
+                    if(id > current_id) {
+                        current_id = id;
+                    }
+                } else {
+                    ESP_LOGE(TAG_ADD_CANDIDATE, "Invalid or missing 'id' field, skipping line");
+                }                
                 cJSON_Delete(candidate_obj);
             }
         }
@@ -49,10 +55,10 @@ esp_err_t add_candidate(Candidate new_candidate)
         if(current_id == 1 && (!candidate_obj)) current_id = 0;
         current_id++;
     } else {
-        // File does not exist, create new file and use id = 0
+        // File does not exist, create new file and use id = 1
         f = fopen("/sd/candidates.jdb", "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_CANDIDATE, "Failed to open file candidates.json for writing");
+            ESP_LOGE(TAG_ADD_CANDIDATE, "Failed to open file candidates.jdb for writing");
             return ESP_FAIL;
         }
     }
@@ -156,22 +162,31 @@ esp_err_t add_party(Party new_party)
     if(f != NULL) {
         //File exists, read and find last registered id
         char line[256];
+        cJSON *party_obj = NULL;
         while(fgets(line, sizeof(line), f)) {
-            cJSON *party_obj = cJSON_Parse(line);
+            party_obj = cJSON_Parse(line);
             if(party_obj) {
-                int id = cJSON_GetObjectItem(party_obj, "id")->valueint;
-                if(id > current_id) {
-                    current_id = id;
-                }
+                // Try to get the "id" field and ensure it's a valid number
+                cJSON *id_item = cJSON_GetObjectItem(party_obj, "id");
+                if(cJSON_IsNumber(id_item)) {
+                    int id = id_item->valueint;
+                    if(id > current_id) {
+                        current_id = id;
+                    }
+                } else {
+                    ESP_LOGE(TAG_ADD_PARTY, "Invalid or missing 'id' field, skipping line");
+                }                
                 cJSON_Delete(party_obj);
             }
         }
+        // Keep id 1 if file exists but no party object in file
+        if(current_id == 1 && (!party_obj)) current_id = 0;
         current_id++;
     } else {
         // File does not exist, create new file and use id = 1
         f = fopen("/sd/parties.jdb", "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_PARTY, "Failed to open file parties.json for writing");
+            ESP_LOGE(TAG_ADD_PARTY, "Failed to open file parties.jdb for writing");
             return ESP_FAIL;
         }
     }
@@ -272,22 +287,31 @@ esp_err_t add_role(Role new_role)
     if(f != NULL) {
         //File exists, read and find last registered id
         char line[256];
+        cJSON *role_obj = NULL;
         while(fgets(line, sizeof(line), f)) {
-            cJSON *role_obj = cJSON_Parse(line);
+            role_obj = cJSON_Parse(line);
             if(role_obj) {
-                int id = cJSON_GetObjectItem(role_obj, "id")->valueint;
-                if(id > current_id) {
-                    current_id = id;
+                // Try to get the "id" field and ensure it's a valid number
+                cJSON *id_item = cJSON_GetObjectItem(role_obj, "id");
+                if(cJSON_IsNumber(id_item)) {
+                    int id = id_item->valueint;
+                    if(id > current_id) {
+                        current_id = id;
+                    }
+                } else {
+                    ESP_LOGE(TAG_ADD_CANDIDATE, "Invalid or missing 'id' field, skipping line");
                 }
                 cJSON_Delete(role_obj);
             }
         }
+        // Keep id 1 if file exists but no role object in file
+        if(current_id == 1 && (!role_obj)) current_id = 0;
         current_id++;
     } else {
         // File does not exist, create new file and use id = 1
         f = fopen("/sd/roles.jdb", "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_ROLE, "Failed to open file parties.json for writing");
+            ESP_LOGE(TAG_ADD_ROLE, "Failed to open file parties.jdb for writing");
             return ESP_FAIL;
         }
     }

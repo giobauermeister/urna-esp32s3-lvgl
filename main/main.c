@@ -18,7 +18,7 @@
 #include "wifi.h"
 
 Candidate candidate1 = {
-    .name = "Giovanni",
+    .name = "New Candidate",
     .number = "1234",
     .role_id = 1,
     .party_id = 1,
@@ -40,8 +40,13 @@ void app_main(void)
     i2c_master_init();
     init_sd_card();
 
-    add_candidate(candidate1);
+    del_file_content("/sd/candidates.jdb");
+    del_file_content("/sd/roles.jdb");
+    del_file_content("/sd/parties.jdb");
+
     add_party(party1);
+    add_role(role1);
+    add_candidate(candidate1);
 
     // del_candidate_by_id(1);
     // del_candidate_by_id(2);
