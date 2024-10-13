@@ -81,7 +81,6 @@ void keypad_task(void *arg)
         ESP_ERROR_CHECK(pcf8574_write(0xF0));
         if(key != '\0') {
             ESP_LOGI(TAG, "Key pressed: %c", key);
-            // update_ui_keypress(key);
             xQueueSend(keypad_queue, &key, portMAX_DELAY);
         }
         vTaskDelay(pdMS_TO_TICKS(100));

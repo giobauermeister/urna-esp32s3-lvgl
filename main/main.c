@@ -40,13 +40,13 @@ void app_main(void)
     i2c_master_init();
     init_sd_card();
 
-    del_file_content("/sd/candidates.jdb");
-    del_file_content("/sd/roles.jdb");
-    del_file_content("/sd/parties.jdb");
+    //del_file_content("/sd/candidates.jdb");
+    //del_file_content("/sd/roles.jdb");
+    //del_file_content("/sd/parties.jdb");
 
-    add_party(party1);
-    add_role(role1);
-    add_candidate(candidate1);
+    //add_party(party1);
+    //add_role(role1);
+    //add_candidate(candidate1);
 
     // del_candidate_by_id(1);
     // del_candidate_by_id(2);

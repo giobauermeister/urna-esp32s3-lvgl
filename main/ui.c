@@ -1,6 +1,7 @@
 #include "lvgl.h"
 #include "ui.h"
 #include "esp_log.h"
+#include "candidate.h"
 
 static const char* TAG = "UI";
 
@@ -19,6 +20,7 @@ lv_obj_t *ui_lb_restart;
 
 int lb_rect_input_number = 0;
 bool vote_state = false;
+char vote_number[5] = "";
 
 void set_screen_background_white(lv_obj_t *screen) {
     static lv_style_t screen_style;
@@ -111,6 +113,8 @@ void update_ui_keypress(char key)
     {
         if(key == 'B') // CORRIGE key pressed
         {
+            vote_number[0] = '\0';
+
             for (size_t i = 0; i < 4; i++)
             {
                 lv_label_set_text(lb_rect_input_numbers[i], "");
@@ -138,6 +142,8 @@ void update_ui_keypress(char key)
 
     if(key == 'B') // CORRIGE key pressed
     {
+        vote_number[0] = '\0';
+        
         for (size_t i = 0; i < 4; i++)
         {
             lv_label_set_text(lb_rect_input_numbers[i], "");
@@ -159,6 +165,7 @@ void update_ui_keypress(char key)
 
     if(lb_rect_input_number < 3)
     {
+        vote_number[lb_rect_input_number] = key;
         lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
         lb_rect_input_number++;
         blink_rectangle(lb_rect_input_number, true);
@@ -168,9 +175,25 @@ void update_ui_keypress(char key)
 
     if(lb_rect_input_number == 3 && vote_state == false)
     {
+        vote_number[lb_rect_input_number] = key;
         lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
         blink_rectangle(lb_rect_input_number, false);
         vote_state = true;
+
+        ESP_LOGI(TAG, "Search for candidate with number: %s", vote_number);
+
+        Candidate found_candidate;
+        esp_err_t result = search_candidate(vote_number, &found_candidate);
+
+        if (result == ESP_OK) {
+            ESP_LOGI("Main", "Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
+            // Use the found_candidate structure
+            lv_label_set_text(lb_cadidate_name, found_candidate.name);
+            clear_candidate(&found_candidate);  // Free memory after use
+        } else {
+            ESP_LOGI("Main", "Candidate not found");
+            lv_label_set_text(lb_cadidate_name, "Nao encontrado");
+        }
 
         lv_obj_clear_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);

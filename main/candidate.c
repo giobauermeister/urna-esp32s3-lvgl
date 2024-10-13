@@ -3,9 +3,11 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "cJSON.h"
+#include <string.h>
 
 static const char* TAG_ADD_CANDIDATE = "Candidate[ADD]";
 static const char* TAG_DEL_CANDIDATE = "Candidate[DEL]";
+static const char* SEARCH_CANDIDATE = "Candidate[SEARCH]";
 static const char* TAG_ADD_PARTY = "Party[ADD]";
 static const char* TAG_DEL_PARTY = "Party[DEL]";
 static const char* TAG_CHECK_PARTY = "Party[CHECK]";
@@ -150,6 +152,56 @@ esp_err_t del_candidate_by_id(int candidate_id)
     ESP_LOGI(TAG_DEL_CANDIDATE, "Candidate with id %d deleted successfully", candidate_id);
 
     return ESP_OK;
+}
+
+esp_err_t search_candidate(const char* candidate_number, Candidate* found_candidate) {
+    ESP_LOGI(SEARCH_CANDIDATE, "Check if candidate exists: %s", candidate_number);
+
+    memset(found_candidate, 0, sizeof(Candidate));
+
+    FILE *f = fopen("/sd/candidates.jdb", "r");
+    if(f == NULL) {
+        ESP_LOGE(SEARCH_CANDIDATE, "Could not open file candidates.jdb for reading");
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), f))
+    {
+        cJSON *candidate_obj = cJSON_Parse(line);
+        if(candidate_obj) {
+            cJSON *number_item = cJSON_GetObjectItem(candidate_obj, "number");
+            if(cJSON_IsString(number_item) && strcmp(number_item->valuestring, candidate_number) == 0) {
+                // Candidate is found, fill structure
+                found_candidate->id = cJSON_GetObjectItem(candidate_obj, "id")->valueint;
+                found_candidate->name = strdup(cJSON_GetObjectItem(candidate_obj, "name")->valuestring);
+                found_candidate->number = strdup(cJSON_GetObjectItem(candidate_obj, "number")->valuestring);
+                found_candidate->role_id = cJSON_GetObjectItem(candidate_obj, "role")->valueint;
+                found_candidate->party_id = cJSON_GetObjectItem(candidate_obj, "party_id")->valueint;
+                // found_candidate->photo_path = strdup(cJSON_GetObjectItem(candidate_obj, "photo_path")->valuestring);
+
+                cJSON_Delete(candidate_obj);
+                fclose(f);
+                return ESP_OK;
+            }
+            cJSON_Delete(candidate_obj);
+        } else {
+            ESP_LOGE(SEARCH_CANDIDATE, "Failed to parse JSON line");
+        }
+    }
+    
+    fclose(f);
+    return ESP_ERR_NOT_FOUND;  // Candidate not found
+}
+
+// Helper function to clear candidate data (free memory)
+void clear_candidate(Candidate* candidate) {
+    if (candidate->name) free(candidate->name);
+    if (candidate->number) free(candidate->number);
+    if (candidate->role_name) free(candidate->role_name);
+    if (candidate->party_name) free(candidate->party_name);
+    if (candidate->photo_path) free(candidate->photo_path);
+    memset(candidate, 0, sizeof(Candidate));
 }
 
 esp_err_t add_party(Party new_party)
