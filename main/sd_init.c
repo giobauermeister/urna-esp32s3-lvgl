@@ -65,7 +65,7 @@ esp_err_t init_sd_card(void)
 
 bool is_sd_card_mounted(void) {
     struct stat st;
-    if (stat("/sdcard", &st) == 0) {
+    if (stat("/sd", &st) == 0) {
         ESP_LOGI(TAG, "SD card is mounted!");
         return true;
     } else {

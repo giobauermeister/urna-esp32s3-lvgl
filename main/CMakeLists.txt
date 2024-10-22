@@ -11,6 +11,8 @@ set(SRC_FILES
     "sd_init.c"
     "candidate.c"
     "wifi.c"
+    "img_unknown.c"
+    "img_no_photo.c"   
 )
 
 set(REQ_COMPONENTS

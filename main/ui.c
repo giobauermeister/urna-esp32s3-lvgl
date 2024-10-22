@@ -2,8 +2,12 @@
 #include "ui.h"
 #include "esp_log.h"
 #include "candidate.h"
+#include "sound.h"
 
 static const char* TAG = "UI";
+
+LV_IMG_DECLARE(img_unknown);
+LV_IMG_DECLARE(img_no_photo);
 
 // Declare an array to hold the rectangle objects
 lv_obj_t *rectangles[NUM_RECTANGLES];
@@ -17,6 +21,7 @@ lv_obj_t *ui_bottom_line;
 lv_obj_t *ui_lb_press_key;
 lv_obj_t *ui_lb_confirm;
 lv_obj_t *ui_lb_restart;
+lv_obj_t *ui_img_profile;
 
 int lb_rect_input_number = 0;
 bool vote_state = false;
@@ -124,6 +129,7 @@ void update_ui_keypress(char key)
             vote_state = false;
             blink_rectangle(lb_rect_input_number, true);
 
+            lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
@@ -153,6 +159,7 @@ void update_ui_keypress(char key)
         vote_state = false;
         blink_rectangle(lb_rect_input_number, true);
 
+        lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
@@ -184,23 +191,34 @@ void update_ui_keypress(char key)
 
         Candidate found_candidate;
         esp_err_t result = search_candidate(vote_number, &found_candidate);
+        char file_path[64];
 
         if (result == ESP_OK) {
             ESP_LOGI("Main", "Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
             // Use the found_candidate structure
             lv_label_set_text(lb_cadidate_name, found_candidate.name);
+            lv_label_set_text(lb_candidate_party, found_candidate.party_name);
+            snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
+            lv_image_set_scale(ui_img_profile, 256);
+            lv_img_set_src(ui_img_profile, file_path);
             clear_candidate(&found_candidate);  // Free memory after use
         } else {
             ESP_LOGI("Main", "Candidate not found");
             lv_label_set_text(lb_cadidate_name, "Nao encontrado");
+            lv_label_set_text(lb_candidate_party, " ");
+            lv_image_set_scale(ui_img_profile, 512);
+            lv_img_set_src(ui_img_profile, &img_unknown);
         }
 
+        lv_obj_clear_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+        play_urna_sound_long();
         return;
     }
 }
@@ -282,5 +300,10 @@ void create_ui(void) {
     lv_obj_set_style_text_font(ui_lb_restart, &lv_font_montserrat_20, LV_PART_MAIN);
     lv_obj_align(ui_lb_restart, LV_ALIGN_TOP_LEFT, 45, 455);
     lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+    ui_img_profile = lv_image_create(screen);
+    lv_obj_set_size(ui_img_profile, 240, 300);
+    lv_obj_align(ui_img_profile, LV_ALIGN_RIGHT_MID, -80, 0);
+    lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
 
 }

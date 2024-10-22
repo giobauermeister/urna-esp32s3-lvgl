@@ -74,6 +74,6 @@ void init_lvgl(void) {
 void create_lvgl_task(void)
 {
     // Create a task for LVGL handling
-    xTaskCreate(lvgl_timer_handler_task, "LVGL Task", 4096, NULL, 5, NULL);
+    xTaskCreate(lvgl_timer_handler_task, "LVGL Task", 8192, NULL, 6, NULL);
 }
 
