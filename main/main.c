@@ -17,6 +17,12 @@
 #include "candidate.h"
 #include "wifi.h"
 
+uint8_t* urna_sound_long = NULL;
+size_t urna_sound_long_size = 0;
+
+uint8_t* urna_sound_short = NULL;
+size_t urna_sound_short_size = 0;
+
 Candidate candidate1 = {
     .name = "New Candidate",
     .number = "1234",
@@ -56,8 +62,12 @@ void app_main(void)
     init_spiffs();
     // list_spiffs_files();
 
-    play_sound("/spiffs/urna_sound_long.wav");
-    // play_sound("/spiffs/urna_sound_short.wav");
+    init_sound_semaphore();
+    urna_sound_long = load_sound_to_memory("/spiffs/urna_sound_long.wav", &urna_sound_long_size);
+    urna_sound_short = load_sound_to_memory("/spiffs/urna_sound_short.wav", &urna_sound_short_size);
+
+    play_urna_sound_long();
+    play_urna_sound_short();
 
     wifi_init_sta();
 
