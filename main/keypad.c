@@ -13,13 +13,21 @@ QueueHandle_t keypad_queue;  // Queue for keys
 // Write to PCF8574 function
 esp_err_t pcf8574_write(uint8_t data)
 {
-    return i2c_master_transmit(pcf8574_i2c_device_handle, &data, 1, pdMS_TO_TICKS(1000));
+    esp_err_t ret = i2c_master_transmit(pcf8574_i2c_device_handle, &data, 1, pdMS_TO_TICKS(1000));
+    if (ret != ESP_OK) {
+        ESP_LOGE("PCF8574", "I2C write failed with error code: 0x%x", ret);
+    }
+    return ret;
 }
 
 // Read from PCF8574 function
 esp_err_t pcf8574_read(uint8_t *data)
 {
-    return i2c_master_receive(pcf8574_i2c_device_handle, data, 1, pdMS_TO_TICKS(1000));
+    esp_err_t ret = i2c_master_receive(pcf8574_i2c_device_handle, data, 1, pdMS_TO_TICKS(1000));
+    if (ret != ESP_OK) {
+        ESP_LOGE("PCF8574", "I2C read failed with error code: 0x%x", ret);
+    }
+    return ret;
 }
 
 void IRAM_ATTR pcf8574_isr_handler(void *arg)
