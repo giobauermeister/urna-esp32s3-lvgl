@@ -91,7 +91,7 @@ void keypad_task(void *arg)
             ESP_LOGI(TAG, "Key pressed: %c", key);
             xQueueSend(keypad_queue, &key, portMAX_DELAY);
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }    
 }
 
@@ -99,6 +99,6 @@ void create_keypad_interrupt_task(void)
 {
     keypad_queue = xQueueCreate(10, sizeof(char));
     ESP_LOGI(TAG, "Task created");
-    xTaskCreate(keypad_task, "keypad_task", 4096, NULL, 10, &keypad_task_handle);
+    xTaskCreate(keypad_task, "keypad_task", 4096, NULL, 7, &keypad_task_handle);
     setup_interrupt(keypad_task_handle);
 }
