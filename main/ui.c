@@ -15,7 +15,7 @@ lv_obj_t *lb_rect_input_numbers[NUM_RECTANGLES];
 
 lv_obj_t *lb_candidate_role;
 lv_obj_t *lb_cadidate_name;
-lv_obj_t *lb_candidate_party;
+lv_obj_t *lb_candidate_party_name;
 
 lv_obj_t *ui_bottom_line;
 lv_obj_t *ui_lb_press_key;
@@ -131,7 +131,7 @@ void update_ui_keypress(char key)
 
             lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -161,7 +161,7 @@ void update_ui_keypress(char key)
 
         lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -197,22 +197,22 @@ void update_ui_keypress(char key)
             ESP_LOGI("Main", "Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
             // Use the found_candidate structure
             lv_label_set_text(lb_cadidate_name, found_candidate.name);
-            lv_label_set_text(lb_candidate_party, found_candidate.party_name);
+            lv_label_set_text(lb_candidate_party_name, found_candidate.party_name);
             snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
             lv_image_set_scale(ui_img_profile, 256);
             lv_img_set_src(ui_img_profile, file_path);
-            clear_candidate(&found_candidate);  // Free memory after use
+            free_candidate(&found_candidate);  // Free memory after use
         } else {
             ESP_LOGI("Main", "Candidate not found");
             lv_label_set_text(lb_cadidate_name, "Nao encontrado");
-            lv_label_set_text(lb_candidate_party, " ");
+            lv_label_set_text(lb_candidate_party_name, " ");
             lv_image_set_scale(ui_img_profile, 512);
             lv_img_set_src(ui_img_profile, &img_unknown);
         }
 
         lv_obj_clear_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
@@ -263,11 +263,11 @@ void create_ui(void) {
     lv_obj_set_style_text_font(ui_lb_party, &lv_font_montserrat_22, LV_PART_MAIN);
     lv_obj_align(ui_lb_party, LV_ALIGN_TOP_LEFT, 5, 355);
 
-    lb_candidate_party = lv_label_create(screen);
-    lv_label_set_text(lb_candidate_party, "Exemplo");
-    lv_obj_set_style_text_font(lb_candidate_party, &lv_font_montserrat_26, LV_PART_MAIN);
-    lv_obj_align_to(lb_candidate_party, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
-    lv_obj_add_flag(lb_candidate_party, LV_OBJ_FLAG_HIDDEN);
+    lb_candidate_party_name = lv_label_create(screen);
+    lv_label_set_text(lb_candidate_party_name, "Exemplo");
+    lv_obj_set_style_text_font(lb_candidate_party_name, &lv_font_montserrat_26, LV_PART_MAIN);
+    lv_obj_align_to(lb_candidate_party_name, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
+    lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
 
     create_row_rectangles(screen, NUM_RECTANGLES);
 
