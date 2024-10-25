@@ -11,7 +11,7 @@ Key components:
 - REST API and Web interface for configuration
 - SD Card to store data
 
-## Elecrow board with 4 inch RGB display and ESP32-S3
+## Elecrow board with 5 inch RGB display and ESP32-S3
 
 [https://www.elecrow.com/esp32-display-5-inch-hmi-display-rgb-tft-lcd-touch-screen-support-lvgl.html](https://www.elecrow.com/esp32-display-5-inch-hmi-display-rgb-tft-lcd-touch-screen-support-lvgl.html)
 
