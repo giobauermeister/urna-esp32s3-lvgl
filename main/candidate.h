@@ -41,5 +41,6 @@ esp_err_t get_party_by_id(int party_id, Party* found_party);
 esp_err_t add_role(Role new_role);
 esp_err_t del_role_by_id(int role_id);
 esp_err_t check_role_exists(int role_id);
+int get_number_of_roles();
 
 #endif // CANDIDATE_H

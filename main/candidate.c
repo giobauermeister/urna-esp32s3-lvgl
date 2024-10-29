@@ -14,6 +14,7 @@ static const char* TAG_GET_PARTY = "Party[GET]";
 static const char* TAG_CHECK_PARTY = "Party[CHECK]";
 static const char* TAG_ADD_ROLE = "Role[ADD]";
 static const char* TAG_DEL_ROLE = "Role[DEL]";
+static const char* TAG_GET_N_ROLES = "Role[GET_N]";
 static const char* TAG_CHECK_ROLE = "Role[CHECK]";
 static const char* TAG_DEL_FILE = "File[DEL]";
 
@@ -448,6 +449,44 @@ esp_err_t add_role(Role new_role)
     }
 
     return ESP_OK;
+}
+
+int get_number_of_roles()
+{
+    int n_roles = 0;
+
+    ESP_LOGI(TAG_GET_N_ROLES, "Get number of roles");
+
+    FILE *f = fopen(FILE_ROLES, "r");
+    if(f == NULL) {
+        ESP_LOGE(TAG_GET_N_ROLES, "Could not open file %s for reading", FILE_ROLES);
+        return -1;
+    }
+
+    char line[256];
+
+    while(fgets(line, sizeof(line), f)) {
+        cJSON *role_obj = cJSON_Parse(line);
+        if(role_obj == NULL) {
+            ESP_LOGE(TAG_GET_N_ROLES, "Failed to parse JSON line");
+            continue;
+        }
+
+        // Get role's ID from JSON object
+        cJSON *id_item = cJSON_GetObjectItem(role_obj, "id");
+        if(!cJSON_IsNumber(id_item)) {
+            ESP_LOGE(TAG_GET_N_ROLES, "Invalid or missing 'id' field");
+            cJSON_Delete(role_obj);
+            continue; // Skip lines without a valid ID
+        } else {
+            // found role object with valid id
+            n_roles++;
+        }
+        cJSON_Delete(role_obj);
+    }
+
+    fclose(f);
+    return n_roles;
 }
 
 esp_err_t del_role_by_id(int role_id)
