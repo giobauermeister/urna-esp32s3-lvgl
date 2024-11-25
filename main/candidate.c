@@ -14,6 +14,7 @@ static const char* TAG_GET_PARTY = "Party[GET]";
 static const char* TAG_CHECK_PARTY = "Party[CHECK]";
 static const char* TAG_ADD_ROLE = "Role[ADD]";
 static const char* TAG_DEL_ROLE = "Role[DEL]";
+static const char* TAG_GET_ROLE = "Role[GET]";
 static const char* TAG_GET_N_ROLES = "Role[GET_N]";
 static const char* TAG_CHECK_ROLE = "Role[CHECK]";
 static const char* TAG_DEL_FILE = "File[DEL]";
@@ -487,6 +488,68 @@ int get_number_of_roles()
 
     fclose(f);
     return n_roles;
+}
+
+esp_err_t get_role_by_id(int role_id, Role* found_role)
+{
+    ESP_LOGI(TAG_GET_ROLE, "Get role by id: %d", role_id);
+
+    FILE *f = fopen(FILE_ROLES, "r");
+    if(f == NULL) {
+        ESP_LOGE(TAG_GET_ROLE, "Could not open file %s for reading", FILE_ROLES);
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    cJSON *role_obj = NULL;
+
+    while(fgets(line, sizeof(line), f)) {
+        role_obj = cJSON_Parse(line);
+        if(role_obj) {
+            // Get roles's ID from JSON object
+            cJSON *id_item = cJSON_GetObjectItem(role_obj, "id");
+            if(!cJSON_IsNumber(id_item)) {
+                ESP_LOGE(TAG_GET_ROLE, "Invalid or missing 'id' field");
+                cJSON_Delete(role_obj);
+                continue; // Skip lines without a valid ID
+            }
+
+            int id = id_item->valueint;
+            if(id == role_id) {
+                // Role is found, fill name element
+                cJSON *name_item = cJSON_GetObjectItem(role_obj, "name");
+                cJSON *n_digits_item = cJSON_GetObjectItem(role_obj, "n_digits");
+
+                if(!name_item || !cJSON_IsString(name_item)) {
+                    ESP_LOGE(TAG_GET_ROLE, "Invalid or missing 'name' field");
+                    cJSON_Delete(role_obj);
+                    fclose(f);
+                    return ESP_ERR_NOT_FOUND;
+                }
+
+                if(!n_digits_item || !cJSON_IsNumber(n_digits_item)) {
+                    ESP_LOGE(TAG_GET_ROLE, "Invalid or missing 'n_digits' field");
+                    cJSON_Delete(role_obj);
+                    fclose(f);
+                    return ESP_ERR_NOT_FOUND;
+                }
+
+                ESP_LOGI(TAG_GET_ROLE, "Role with id %d found", role_id);
+                found_role->name = strdup(name_item->valuestring);
+                found_role->n_digits = n_digits_item->valueint;
+                cJSON_Delete(role_obj);
+                fclose(f);
+                return ESP_OK;
+            }
+            cJSON_Delete(role_obj);
+        } else {
+            ESP_LOGE(TAG_GET_ROLE, "Failed to parse JSON line");
+            continue;
+        }
+    }
+
+    fclose(f);
+    return ESP_ERR_NOT_FOUND; // Role not found
 }
 
 esp_err_t del_role_by_id(int role_id)
