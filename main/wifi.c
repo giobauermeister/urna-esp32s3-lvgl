@@ -1,10 +1,17 @@
 #include "wifi.h"
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+
+#define STR(x) #x
+#define XSTR(x) STR(x)
+
+const char* wifi_ssid = XSTR(WIFI_SSID);
+const char* wifi_pass = XSTR(WIFI_PASSWORD);
 
 static const char *TAG = "WIFI";
 
@@ -54,10 +61,16 @@ void wifi_init_sta()
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASSWORD,
+            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+            .pmf_cfg = {
+                .capable = true,
+                .required = false
+            },
         },
     };
+
+    strncpy((char *)wifi_config.sta.ssid, wifi_ssid, sizeof(wifi_config.sta.ssid));
+    strncpy((char *)wifi_config.sta.password, wifi_pass, sizeof(wifi_config.sta.password));
     
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));

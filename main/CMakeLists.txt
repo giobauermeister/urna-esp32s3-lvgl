@@ -38,3 +38,8 @@ add_definitions(-DLV_CONF_INCLUDE_SIMPLE)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE "-std=c++17")
+
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    WIFI_SSID=${ENV_WIFI_SSID}
+    WIFI_PASSWORD=${ENV_WIFI_PASSWORD}
+)
