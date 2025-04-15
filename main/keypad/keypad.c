@@ -1,9 +1,9 @@
-#include "keypad.h"
+#include "keypad/keypad.h"
 #include "esp_err.h"
 #include "driver/i2c_master.h"
-#include "i2c_init.h"
+#include "i2c/i2c_init.h"
 #include "freertos/FreeRTOS.h"
-#include "ui.h"
+#include "ui/ui.h"
 
 static const char* TAG = "Keypad";
 

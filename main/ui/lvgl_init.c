@@ -1,14 +1,14 @@
 #include "lvgl.h"
-#include "lcd_init.h"
-#include "lvgl_init.h"
+#include "lcd/lcd_init.h"
+#include "ui/lvgl_init.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_heap_caps.h"
 #include "esp_mac.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "keypad.h"
-#include "ui.h"
+#include "keypad/keypad.h"
+#include "ui/ui.h"
 
 #define LVGL_TICK_PERIOD_MS 1
 

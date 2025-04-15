@@ -2,7 +2,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
 #include "esp_lcd_types.h"
-#include "lcd_init.h"
+#include "lcd/lcd_init.h"
 
 // Global panel handle
 esp_lcd_panel_handle_t panel_handle = NULL;

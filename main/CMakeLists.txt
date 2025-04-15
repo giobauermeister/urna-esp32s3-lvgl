@@ -1,18 +1,21 @@
 set(SRC_FILES
     "main.c"
-    "keypad.c"
-    "lcd_init.c"
-    "lvgl_init.c"
-    "i2s_init.c"
-    "i2c_init.c"
-    "ui.c"
-    "sound.c"
-    "spiffs.c"
-    "sd_init.c"
-    "candidate.c"
-    "wifi.c"
-    "img_unknown.c"
-    "img_no_photo.c"   
+    "keypad/keypad.c"
+    "lcd/lcd_init.c"
+    "ui/lvgl_init.c"
+    "i2s/i2s_init.c"
+    "i2c/i2c_init.c"
+    "ui/ui.c"
+    "sound/sound.c"
+    "storage/spiffs.c"
+    "storage/sd_init.c"
+    "candidate/candidate.c"
+    "wifi/wifi.c" 
+)
+
+set(UI_ASSETS
+    "ui/assets/img_unknown.c"
+    "ui/assets/img_no_photo.c"  
 )
 
 set(REQ_COMPONENTS
@@ -27,7 +30,7 @@ set(REQ_COMPONENTS
 )
 
 idf_component_register(
-    SRCS ${SRC_FILES}
+    SRCS ${SRC_FILES} ${UI_ASSETS}
     INCLUDE_DIRS "."
     REQUIRES ${REQ_COMPONENTS}
 )

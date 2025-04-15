@@ -1,5 +1,5 @@
-#include "sound.h"
-#include "i2s_init.h"
+#include "sound/sound.h"
+#include "i2s/i2s_init.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
 #include <dirent.h>

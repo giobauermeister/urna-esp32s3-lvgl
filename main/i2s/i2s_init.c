@@ -1,4 +1,4 @@
-#include "i2s_init.h"
+#include "i2s/i2s_init.h"
 #include "driver/gpio.h"
 
 // Channel handle

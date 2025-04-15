@@ -1,8 +1,8 @@
 #include "lvgl.h"
-#include "ui.h"
+#include "ui/ui.h"
 #include "esp_log.h"
-#include "candidate.h"
-#include "sound.h"
+#include "candidate/candidate.h"
+#include "sound/sound.h"
 
 static const char* TAG = "UI";
 

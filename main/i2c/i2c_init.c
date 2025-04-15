@@ -1,4 +1,4 @@
-#include "i2c_init.h"
+#include "i2c/i2c_init.h"
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 
