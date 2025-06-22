@@ -5,6 +5,11 @@
 #include <dirent.h>
 #include "esp_heap_caps.h"
 
+typedef struct {
+    uint8_t *data;
+    size_t size;
+} sound_params_t;
+
 static const char* TAG_SPIFFS = "SPIFFS";
 static const char* TAG_SOUND = "Sound";
 
@@ -71,37 +76,40 @@ void play_sound_from_memory(const uint8_t* wav_data, size_t size)
 
 void play_sound_from_memory_task(void *pvParameters)
 {
-    // Cast the passed parameters back to a struct
-    uint8_t *wav_data = ((uint8_t **)pvParameters)[0];
-    size_t size = *((size_t *)((uint8_t **)pvParameters)[1]);
+    sound_params_t *params = (sound_params_t *)pvParameters;
 
-    // Wait for the semaphore (to ensure no other sound is playing)
-    if (xSemaphoreTake(xSoundSemaphore, portMAX_DELAY) == pdTRUE)
-    {
-        // Play the sound from memory
-        play_sound_from_memory(wav_data, size);
-
-        // After playing, give back the semaphore to allow the next sound to play
-        xSemaphoreGive(xSoundSemaphore);
-
-        // After playing, delete the task to make it one-shot
+    if (!params || !params->data || params->size == 0) {
+        ESP_LOGE(TAG_SOUND, "Invalid sound parameters");
         vTaskDelete(NULL);
+        return;
     }
+
+    play_sound_from_memory(params->data, params->size);
+
+    ESP_LOGI(TAG_SOUND, "Stack high watermark: %u", uxTaskGetStackHighWaterMark(NULL));
+    // After playback, clean up
+    free(params);
+    vTaskDelete(NULL);
 }
 
 void start_play_sound_from_memory_task(uint8_t *wav_data, size_t size)
 {
-    // Create a structure to hold the sound data and size to pass to the task
-    uint8_t *params[] = { wav_data, (uint8_t *)&size };
+    sound_params_t *params = malloc(sizeof(sound_params_t));
+    if (!params) {
+        ESP_LOGE(TAG_SOUND, "Failed to allocate memory for sound params");
+        return;
+    }
 
-    // Create a FreeRTOS task for playing the sound from memory
+    params->data = wav_data;
+    params->size = size;
+
     xTaskCreate(
-        play_sound_from_memory_task,  // Task function
-        "PlaySoundTask",              // Name of the task
-        8192,                         // Stack size in bytes
-        params,                       // Parameters passed to the task
-        3,                            // Task priority (set this as needed)
-        NULL                          // Task handle (can be NULL if not needed)
+        play_sound_from_memory_task,
+        "PlaySoundTask",
+        2560,
+        params,  // now safe!
+        3,
+        NULL
     );
 }
 

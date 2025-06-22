@@ -1,10 +1,30 @@
-#ifndef UI_H
-#define UI_H
+/**
+ * @file ui.h
+ *
+ */
 
-#define NUM_RECTANGLES 4  // Number of rectangles
+#ifndef _UI_H_
+#define _UI_H_
 
-// Function declaration
+/*********************
+ *      INCLUDES
+ *********************/
+#include "lvgl.h"
+
+/*********************
+ *      DEFINES
+ *********************/
+
+/*********************
+ *      ASSETS
+ *********************/
+LV_IMAGE_DECLARE(img_unknown);
+LV_IMAGE_DECLARE(img_no_photo);
+
+/**********************
+ * GLOBAL PROTOTYPES
+ **********************/
 void create_ui(void);
 void update_ui_keypress(char key);
 
-#endif  // UI_H
+#endif  // _UI_H_

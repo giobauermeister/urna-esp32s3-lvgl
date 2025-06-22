@@ -18,8 +18,9 @@ static const char* TAG_GET_ROLE = "Role[GET]";
 static const char* TAG_GET_N_ROLES = "Role[GET_N]";
 static const char* TAG_CHECK_ROLE = "Role[CHECK]";
 static const char* TAG_DEL_FILE = "File[DEL]";
+static const char* TAG_STORE_VOTE = "Vote[STORE]";
 
-esp_err_t add_candidate(Candidate new_candidate)
+esp_err_t add_candidate(ui_candidate_t new_candidate)
 {
     ESP_LOGI(TAG_ADD_CANDIDATE, "Add candidate");
 
@@ -63,7 +64,7 @@ esp_err_t add_candidate(Candidate new_candidate)
         // File does not exist, create new file and use id = 1
         f = fopen(FILE_CANDIDATES, "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_CANDIDATE, "Failed to open file candidates.jdb for writing");
+            ESP_LOGE(TAG_ADD_CANDIDATE, "Failed to open file candidates.jsonl for writing");
             return ESP_FAIL;
         }
     }
@@ -157,11 +158,11 @@ esp_err_t del_candidate_by_id(int candidate_id)
     return ESP_OK;
 }
 
-esp_err_t search_candidate(const char* candidate_number, Candidate* found_candidate)
+esp_err_t search_candidate(const char * candidate_number, ui_candidate_t * found_candidate)
 {
     ESP_LOGI(TAG_SEARCH_CANDIDATE, "Search candidate by number: %s", candidate_number);
 
-    memset(found_candidate, 0, sizeof(Candidate));
+    memset(found_candidate, 0, sizeof(ui_candidate_t));
 
     FILE *f = fopen(FILE_CANDIDATES, "r");
     if(f == NULL) {
@@ -170,7 +171,7 @@ esp_err_t search_candidate(const char* candidate_number, Candidate* found_candid
     }
 
     char line[256];
-    Party found_party;
+    ui_party_t found_party;
 
     while (fgets(line, sizeof(line), f))
     {
@@ -207,15 +208,15 @@ esp_err_t search_candidate(const char* candidate_number, Candidate* found_candid
 }
 
 // Helper function to clear candidate data (free memory)
-void free_candidate(Candidate* candidate) {
+void free_candidate(ui_candidate_t * candidate) {
     if (candidate->name) free(candidate->name);
     if (candidate->number) free(candidate->number);
     if (candidate->role_name) free(candidate->role_name);
     if (candidate->party_name) free(candidate->party_name);
-    memset(candidate, 0, sizeof(Candidate));
+    memset(candidate, 0, sizeof(ui_candidate_t));
 }
 
-esp_err_t add_party(Party new_party)
+esp_err_t add_party(ui_party_t new_party)
 {
     ESP_LOGI(TAG_ADD_PARTY, "Add party");
 
@@ -249,7 +250,7 @@ esp_err_t add_party(Party new_party)
         // File does not exist, create new file and use id = 1
         f = fopen(FILE_PARTIES, "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_PARTY, "Failed to open file parties.jdb for writing");
+            ESP_LOGE(TAG_ADD_PARTY, "Failed to open file parties.jsonl for writing");
             return ESP_FAIL;
         }
     }
@@ -340,7 +341,7 @@ esp_err_t del_party_by_id(int party_id)
     return ESP_OK;
 }
 
-esp_err_t get_party_by_id(int party_id, Party* found_party)
+esp_err_t get_party_by_id(int party_id, ui_party_t * found_party)
 {
     ESP_LOGI(TAG_GET_PARTY, "Get party by id: %d", party_id);
 
@@ -392,7 +393,7 @@ esp_err_t get_party_by_id(int party_id, Party* found_party)
     return ESP_ERR_NOT_FOUND; // Party not found
 }
 
-esp_err_t add_role(Role new_role)
+esp_err_t add_role(ui_role_t new_role)
 {
     ESP_LOGI(TAG_ADD_ROLE, "Add role");
 
@@ -426,7 +427,7 @@ esp_err_t add_role(Role new_role)
         // File does not exist, create new file and use id = 1
         f = fopen(FILE_ROLES, "w");
         if(f == NULL) {
-            ESP_LOGE(TAG_ADD_ROLE, "Failed to open file parties.jdb for writing");
+            ESP_LOGE(TAG_ADD_ROLE, "Failed to open file parties.jsonl for writing");
             return ESP_FAIL;
         }
     }
@@ -490,7 +491,7 @@ int get_number_of_roles()
     return n_roles;
 }
 
-esp_err_t get_role_by_id(int role_id, Role* found_role)
+esp_err_t get_role_by_id(int role_id, ui_role_t * found_role)
 {
     ESP_LOGI(TAG_GET_ROLE, "Get role by id: %d", role_id);
 
@@ -698,5 +699,40 @@ esp_err_t del_file_content(const char *file_path)
 
     fclose(f);
     ESP_LOGI(TAG_DEL_FILE, "File %s cleared successfully.", file_path);
+    return ESP_OK;
+}
+
+esp_err_t store_vote(ui_vote_store_t vote)
+{
+    ESP_LOGI(TAG_STORE_VOTE, "Storing vote for number: %s", vote.number);
+
+    FILE *f = fopen(FILE_VOTES, "a");
+    if(f == NULL) {
+        ESP_LOGE(TAG_STORE_VOTE, "Could not open file %s for reading", FILE_VOTES);
+        return ESP_FAIL;
+    }
+
+    cJSON *vote_obj = cJSON_CreateObject();
+    cJSON_AddStringToObject(vote_obj, "number", vote.number);
+    cJSON_AddNumberToObject(vote_obj, "timestamp", (double)vote.timestamp);
+
+    char *rendered_json = cJSON_PrintUnformatted(vote_obj);
+    if (!rendered_json) {
+        ESP_LOGE(TAG_STORE_VOTE, "Failed to render vote JSON");
+        cJSON_Delete(vote_obj);
+        fclose(f);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG_STORE_VOTE, "Vote JSON: %s", rendered_json);
+
+    int write_ret = fprintf(f, "%s\n", rendered_json);
+
+    if(write_ret < 0) {
+        ESP_LOGE(TAG_STORE_VOTE, "Failed to write vote to file");
+        return ESP_FAIL;
+    }
+
+    fclose(f);
     return ESP_OK;
 }
