@@ -3,12 +3,15 @@
 
 #include "esp_err.h"
 #include <time.h>
+#include <stdbool.h>
 
 #define FILE_CANDIDATES "/sd/candidates.jsonl"
 #define FILE_PARTIES    "/sd/parties.jsonl"
 #define FILE_ROLES      "/sd/roles.jsonl"
 #define FILE_VOTES      "/sd/votes.jsonl"
 #define FILE_TEMP       "/sd/temp.jsonl"
+
+#define MAX_ROLES 10
 
 typedef struct {
     int id;
@@ -49,7 +52,8 @@ esp_err_t add_role(ui_role_t new_role);
 esp_err_t del_role_by_id(int role_id);
 esp_err_t get_role_by_id(int role_id, ui_role_t * found_role);
 esp_err_t check_role_exists(int role_id);
-int get_number_of_roles();
+int get_number_of_roles(void);
 esp_err_t store_vote(ui_vote_store_t vote);
+void load_candidate_roles(void);
 
 #endif // CANDIDATE_H

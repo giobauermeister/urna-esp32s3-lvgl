@@ -93,19 +93,14 @@ void app_main(void)
     urna_sound_long = load_sound_to_memory("/spiffs/urna_sound_long.wav", &urna_sound_long_size);
     urna_sound_short = load_sound_to_memory("/spiffs/urna_sound_short.wav", &urna_sound_short_size);
 
-    play_urna_sound_long();
-
     wifi_init_sta();
-
     initialize_sntp();
     wait_for_time_sync();
-
+    load_candidate_roles();
     init_lcd_panel();
     init_lvgl();
-
-    // Create UI elements
+    play_urna_sound_long();
     create_ui();
-
     create_keypad_interrupt_task();
     
     vTaskDelay(pdMS_TO_TICKS(500));

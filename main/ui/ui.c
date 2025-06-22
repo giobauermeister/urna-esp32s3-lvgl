@@ -15,7 +15,7 @@
 /*********************
  *      DEFINES
  *********************/
-#define NUM_RECTANGLES 4
+#define MAX_DIGITS 4
 
 /**********************
  *      TYPEDEFS
@@ -29,17 +29,23 @@ static void anim_border_opacity_cb(void *rect_obj, int32_t opacity);
 static void create_row_rectangles(lv_obj_t *parent, int16_t n_rect);
 static void blink_rectangle(uint8_t rect_id, bool run);
 static void store_vote_async_cb(void * vote_ptr);
+static ui_role_static_t * get_current_role(void);
+static bool go_to_next_role(void);
+static void restart_voting(void);
+static void show_voting_end_screen_and_restart(void);
+static void restart_voting_cb(lv_timer_t * timer);
 
 /**********************
  *  STATIC VARIABLES
  **********************/
+static bool candidate_found = false;
 
 /**********************
  *  GLOBAL VARIABLES
  **********************/
 // Declare an array to hold the rectangle objects
-lv_obj_t *rectangles[NUM_RECTANGLES];
-lv_obj_t *lb_rect_input_numbers[NUM_RECTANGLES];
+lv_obj_t *rectangles[MAX_DIGITS];
+lv_obj_t *lb_rect_input_numbers[MAX_DIGITS];
 
 lv_obj_t *lb_candidate_role;
 lv_obj_t *lb_cadidate_name;
@@ -53,7 +59,12 @@ lv_obj_t *ui_img_profile;
 
 int lb_rect_input_number = 0;
 bool vote_state = false;
-char vote_number[5] = "";
+char vote_number[MAX_DIGITS + 1] = "";
+int total_rectangles = 0;
+
+ui_role_static_t voting_sequence[MAX_ROLES];
+int total_roles = 0;
+int current_role_index = 0;
 
 /**********************
  *      MACROS
@@ -75,9 +86,11 @@ void update_ui_keypress(char key)
     {
         if(key == 'B') // CORRIGE key pressed
         {
-            vote_number[0] = '\0';
+            candidate_found = false;
 
-            for (size_t i = 0; i < 4; i++)
+            lv_memset(vote_number, 0, sizeof(vote_number));
+
+            for (size_t i = 0; i < total_rectangles; i++)
             {
                 lv_label_set_text(lb_rect_input_numbers[i], "");
                 blink_rectangle(i, false);
@@ -99,6 +112,11 @@ void update_ui_keypress(char key)
 
         if(key == 'A') // CONFIRMA key pressed
         {
+            if (!candidate_found) {
+                LV_LOG_USER("Cannot confirm vote: candidate not found");
+                return;
+            }
+
             LV_LOG_USER("Confirm vote for number: %s", vote_number);
             
             ui_vote_store_t *vote = lv_malloc(sizeof(ui_vote_store_t));
@@ -117,15 +135,62 @@ void update_ui_keypress(char key)
             }
 
             lv_async_call(store_vote_async_cb, vote);
-            lv_async_call(play_urna_sound_short, NULL);
+
+            if (go_to_next_role()) {
+                candidate_found = false;
+                lv_async_call(play_urna_sound_short, NULL);
+                // Prepare for next voting stage
+
+                // 1. Reset vote state and number
+                lv_memset(vote_number, 0, sizeof(vote_number));
+                lb_rect_input_number = 0;
+                vote_state = false;
+
+                // 2. Destroy old rectangles (optional if you recreate them in-place)
+                for (size_t i = 0; i < total_rectangles; i++) {
+                    lv_obj_delete(rectangles[i]);
+                    lv_obj_delete(lb_rect_input_numbers[i]);
+                }
+
+                // 3. Get new role info and recreate rectangles
+                ui_role_static_t *role = get_current_role();
+                if (role) {
+                    total_rectangles = role->n_digits;
+                    create_row_rectangles(lv_screen_active(), total_rectangles);
+
+                    // 4. Blink the first rectangle
+                    blink_rectangle(0, true);
+                    for (int i = 1; i < total_rectangles; i++) {
+                        blink_rectangle(i, false);
+                    }
+
+                    // 5. Update role name label
+                    lv_label_set_text(lb_candidate_role, role->name);
+                }
+
+                // 6. Hide result UI elements again
+                lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+                return;
+            } else {
+                LV_LOG_USER("All roles completed. End of voting.");
+                lv_async_call(play_urna_sound_long, NULL);
+                show_voting_end_screen_and_restart();
+            }
         }
     }
 
     if(key == 'B') // CORRIGE key pressed
     {
-        vote_number[0] = '\0';
+        lv_memset(vote_number, 0, sizeof(vote_number));
         
-        for (size_t i = 0; i < 4; i++)
+        for (size_t i = 0; i < total_rectangles; i++)
         {
             lv_label_set_text(lb_rect_input_numbers[i], "");
             blink_rectangle(i, false);
@@ -145,7 +210,7 @@ void update_ui_keypress(char key)
         return;
     }
 
-    if(lb_rect_input_number < 3)
+    if(lb_rect_input_number < total_rectangles - 1)
     {
         vote_number[lb_rect_input_number] = key;
         lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
@@ -155,7 +220,7 @@ void update_ui_keypress(char key)
         return;
     }
 
-    if(lb_rect_input_number == 3 && vote_state == false)
+    if(lb_rect_input_number == total_rectangles - 1 && vote_state == false)
     {
         vote_number[lb_rect_input_number] = key;
         lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
@@ -170,6 +235,7 @@ void update_ui_keypress(char key)
 
         if (result == ESP_OK) {
             LV_LOG_USER("Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
+            candidate_found = true;
             // Use the found_candidate structure
             lv_label_set_text(lb_cadidate_name, found_candidate.name);
             lv_label_set_text(lb_candidate_party_name, found_candidate.party_name);
@@ -177,12 +243,16 @@ void update_ui_keypress(char key)
             lv_image_set_scale(ui_img_profile, 256);
             lv_image_set_src(ui_img_profile, file_path);
             free_candidate(&found_candidate);  // Free memory after use
+            lv_obj_remove_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
         } else {
             LV_LOG_USER("Candidate not found");
+            candidate_found = false;
             lv_label_set_text(lb_cadidate_name, "Nao encontrado");
             lv_label_set_text(lb_candidate_party_name, " ");
             lv_image_set_scale(ui_img_profile, 512);
             lv_image_set_src(ui_img_profile, &img_unknown);
+            lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
         }
 
         lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
@@ -190,8 +260,6 @@ void update_ui_keypress(char key)
         lv_obj_remove_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
 
         return;
     }
@@ -206,6 +274,11 @@ void create_ui(void)
     // Set screen background to white
     set_screen_background_white(screen);
 
+    ui_role_static_t *role = get_current_role();
+    if (role) {
+        LV_LOG_USER("Now voting for %s (%d digits)", role->name, role->n_digits);
+    }
+
     // Create a static label
     lv_obj_t *ui_lb_your_vote_for = lv_label_create(screen);
     lv_label_set_text(ui_lb_your_vote_for, "SEU VOTO PARA");
@@ -213,7 +286,11 @@ void create_ui(void)
     lv_obj_align(ui_lb_your_vote_for, LV_ALIGN_TOP_LEFT, 10, 25);
 
     lb_candidate_role = lv_label_create(screen);
-    lv_label_set_text(lb_candidate_role, "Vereador");
+    if (role) {
+        lv_label_set_text(lb_candidate_role, role->name);
+    } else {
+        lv_label_set_text(lb_candidate_role, "???");
+    }
     lv_obj_set_style_text_font(lb_candidate_role, &lv_font_montserrat_46, LV_PART_MAIN);
     lv_obj_align(lb_candidate_role, LV_ALIGN_TOP_LEFT, 120, 90);
 
@@ -244,12 +321,14 @@ void create_ui(void)
     lv_obj_align_to(lb_candidate_party_name, ui_lb_party, LV_ALIGN_OUT_RIGHT_MID, 30, 0);
     lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
 
-    create_row_rectangles(screen, NUM_RECTANGLES);
+    if (role) {
+        total_rectangles = role->n_digits;
+        create_row_rectangles(screen, total_rectangles);
 
-    blink_rectangle(0, true);
-    blink_rectangle(1, false);
-    blink_rectangle(2, false);
-    blink_rectangle(3, false);
+        for (int i = 0; i < total_rectangles; i++) {
+            blink_rectangle(i, i == 0);  // only first rectangle blinks
+        }
+    }
 
     // Create line at the bottom
     ui_bottom_line = lv_obj_create(screen);
@@ -280,7 +359,6 @@ void create_ui(void)
     lv_obj_set_size(ui_img_profile, 240, 300);
     lv_obj_align(ui_img_profile, LV_ALIGN_RIGHT_MID, -80, 0);
     lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-
 }
 
 /**********************
@@ -368,6 +446,65 @@ static void blink_rectangle(uint8_t rect_id, bool run)
 static void store_vote_async_cb(void * vote_ptr)
 {
     ui_vote_store_t *vote = (ui_vote_store_t *)vote_ptr;
-    store_vote(*vote);  // reuse your function
-    lv_free(vote);         // free after done
+    store_vote(*vote);
+    lv_free(vote);
+}
+
+static ui_role_static_t * get_current_role(void)
+{
+    if (current_role_index < total_roles) {
+        return &voting_sequence[current_role_index];
+    }
+    return NULL;
+}
+
+static bool go_to_next_role(void)
+{
+    if (current_role_index + 1 < total_roles) {
+        current_role_index++;
+        return true;
+    }
+    return false;  // no more roles, voting done
+}
+
+static void restart_voting(void)
+{
+    LV_LOG_USER("Restarting voting");
+    current_role_index = 0;
+    lb_rect_input_number = 0;
+    vote_state = false;
+    lv_memset(vote_number, 0, sizeof(vote_number));
+
+    // Destroy current screen
+    lv_obj_clean(lv_screen_active());
+
+    // Recreate UI from scratch
+    create_ui();
+
+    LV_LOG_USER("vote_number: %s", vote_number);
+}
+
+static void show_voting_end_screen_and_restart(void)
+{
+    // Clear everything
+    lv_obj_clean(lv_screen_active());
+
+    lv_obj_t *screen = lv_screen_active();
+
+    lv_obj_t *lb_fim = lv_label_create(screen);
+    lv_label_set_text(lb_fim, "FIM");
+    lv_obj_set_style_text_font(lb_fim, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_obj_center(lb_fim);
+
+    // Schedule restart after 3 seconds
+    lv_timer_t *restart_timer = lv_timer_create_basic();
+    lv_timer_set_cb(restart_timer, restart_voting_cb);
+    lv_timer_set_period(restart_timer, 3000);
+    lv_timer_set_repeat_count(restart_timer, 1);
+}
+
+static void restart_voting_cb(lv_timer_t * timer)
+{
+    lv_timer_delete(timer);
+    restart_voting();
 }

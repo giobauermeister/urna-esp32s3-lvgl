@@ -4,6 +4,8 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include <string.h>
+#include <stdbool.h>
+#include "ui/ui.h"
 
 static const char* TAG_ADD_CANDIDATE = "Candidate[ADD]";
 static const char* TAG_DEL_CANDIDATE = "Candidate[DEL]";
@@ -453,7 +455,7 @@ esp_err_t add_role(ui_role_t new_role)
     return ESP_OK;
 }
 
-int get_number_of_roles()
+int get_number_of_roles(void)
 {
     int n_roles = 0;
 
@@ -735,4 +737,37 @@ esp_err_t store_vote(ui_vote_store_t vote)
 
     fclose(f);
     return ESP_OK;
+}
+
+void load_candidate_roles(void)
+{
+    FILE *f = fopen(FILE_ROLES, "r");
+    if (!f) {
+        ESP_LOGE("ROLES", "Could not open %s", FILE_ROLES);
+        return;
+    }
+
+    char line[256];
+    total_roles = 0;
+
+    while (fgets(line, sizeof(line), f) && total_roles < MAX_ROLES) {
+        cJSON *obj = cJSON_Parse(line);
+        if (!obj) continue;
+
+        cJSON *id = cJSON_GetObjectItem(obj, "id");
+        cJSON *name = cJSON_GetObjectItem(obj, "name");
+        cJSON *n_digits = cJSON_GetObjectItem(obj, "n_digits");
+
+        if (cJSON_IsNumber(id) && cJSON_IsString(name) && cJSON_IsNumber(n_digits)) {
+            ESP_LOGI("ROLES", "Loading role #%d (id=%d, name=%s)", total_roles, id->valueint, name->valuestring);
+            voting_sequence[total_roles].id = id->valueint;
+            strncpy(voting_sequence[total_roles].name, name->valuestring, sizeof(voting_sequence[total_roles].name) - 1);
+            voting_sequence[total_roles].n_digits = n_digits->valueint;
+            total_roles++;
+        }
+
+        cJSON_Delete(obj);
+    }
+
+    fclose(f);
 }
