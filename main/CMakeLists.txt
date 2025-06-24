@@ -10,7 +10,13 @@ set(SRC_FILES
     "storage/spiffs.c"
     "storage/sd_init.c"
     "candidate/candidate.c"
-    "wifi/wifi.c" 
+    "wifi/wifi.c"
+    # API source files
+    "web_api/web_api.c"
+    "web_api/handlers/candidate/api_candidate.c"
+    "web_api/handlers/party/api_party.c"
+    "web_api/handlers/role/api_role.c"
+    "web_api/handlers/voting_result/api_voting_result.c"
 )
 
 set(UI_ASSETS
@@ -27,6 +33,7 @@ set(REQ_COMPONENTS
     json
     nvs_flash
     esp_wifi
+    esp_http_server
 )
 
 idf_component_register(

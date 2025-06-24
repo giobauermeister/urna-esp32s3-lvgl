@@ -17,6 +17,7 @@
 #include "candidate/candidate.h"
 #include "wifi/wifi.h"
 #include "esp_sntp.h"
+#include "web_api/web_api.h"
 
 uint8_t* urna_sound_long = NULL;
 size_t urna_sound_long_size = 0;
@@ -96,6 +97,7 @@ void app_main(void)
     wifi_init_sta();
     initialize_sntp();
     wait_for_time_sync();
+    start_webserver();
     load_candidate_roles();
     init_lcd_panel();
     init_lvgl();
