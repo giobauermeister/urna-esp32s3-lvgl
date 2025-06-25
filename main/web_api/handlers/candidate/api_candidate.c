@@ -1,22 +1,38 @@
 #include "api_candidate.h"
+#include "cJSON.h"
+#include "candidate/candidate.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
-/* Our URI handler function to be called during GET /uri request */
 esp_err_t web_api_get_handler_candidate(httpd_req_t *req)
 {
-    const char *resp_all = "web_api_get_handler_candidate";
-    httpd_resp_send(req, resp_all, HTTPD_RESP_USE_STRLEN);
+    cJSON *candidates_array = NULL;
+    if (get_all_candidates(&candidates_array) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read candidates");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(candidates_array);
+    cJSON_Delete(candidates_array);
+
+    if (!json_str) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON encoding error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+    free(json_str);
     return ESP_OK;
 }
 
 esp_err_t web_api_get_handler_candidate_by_id(httpd_req_t *req)
 {
     const char *uri = req->uri;             // e.g., "/api/candidate/123"
-    const char *prefix = "/api/candidate/"; // same as uri_get_candidate_by_id.uri
-    const char *id_str = uri + strlen(prefix); // point past the prefix
+    const char *prefix = "/api/candidate/"; // match your route
+    const char *id_str = uri + strlen(prefix); // get the "123" part
 
     if (*id_str == '\0') {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing candidate ID");
@@ -24,9 +40,42 @@ esp_err_t web_api_get_handler_candidate_by_id(httpd_req_t *req)
     }
 
     int id = atoi(id_str);
-    char resp[64];
-    snprintf(resp, sizeof(resp), "Returning candidate with ID: %d", id);
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    if (id <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid candidate ID");
+        return ESP_FAIL;
+    }
+
+    ui_candidate_t candidate;
+    memset(&candidate, 0, sizeof(candidate));
+
+    if (get_candidate_by_id(id, &candidate) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Candidate not found");
+        return ESP_FAIL;
+    }
+
+    cJSON *json = candidate_to_json(&candidate);
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON encoding failed");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    if (!json_str) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON print failed");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+
+    // Clean up memory
+    free(json_str);
+    free(candidate.name);
+    free(candidate.number);
+    free(candidate.party_name);
+
     return ESP_OK;
 }
 

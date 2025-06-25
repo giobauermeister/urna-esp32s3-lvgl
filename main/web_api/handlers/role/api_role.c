@@ -1,4 +1,6 @@
 #include "api_role.h"
+#include "cJSON.h"
+#include "candidate/candidate.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -6,9 +8,23 @@
 
 esp_err_t web_api_get_handler_role(httpd_req_t *req)
 {
-    /* Send a simple response */
-    const char resp[] = "web_api_get_handler_role";
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    cJSON *role_array = NULL;
+    if (get_all_roles(&role_array) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to retrieve roles");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(role_array);
+    cJSON_Delete(role_array);
+
+    if (!json_str) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON encoding error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+    free(json_str);
     return ESP_OK;
 }
 
@@ -24,9 +40,27 @@ esp_err_t web_api_get_handler_role_by_id(httpd_req_t *req)
     }
 
     int id = atoi(id_str);
-    char resp[64];
-    snprintf(resp, sizeof(resp), "Returning role with ID: %d", id);
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    ui_role_t role = { .id = id };
+
+    if (get_role_by_id(id, &role) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Role not found");
+        return ESP_FAIL;
+    }
+
+    cJSON *json = role_to_json(&role);
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create JSON");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+
+    free(role.name);  // free strdup()
+    free(json_str);
     return ESP_OK;
 }
 

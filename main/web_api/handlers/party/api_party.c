@@ -1,4 +1,6 @@
 #include "api_party.h"
+#include "cJSON.h"
+#include "candidate/candidate.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -6,8 +8,23 @@
 
 esp_err_t web_api_get_handler_party(httpd_req_t *req)
 {
-    const char resp[] = "web_api_get_handler_party";
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    cJSON *party_array = NULL;
+    if (get_all_parties(&party_array) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to retrieve parties");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(party_array);
+    cJSON_Delete(party_array);
+
+    if (!json_str) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON encoding error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+    free(json_str);
     return ESP_OK;
 }
 
@@ -23,9 +40,27 @@ esp_err_t web_api_get_handler_party_by_id(httpd_req_t *req)
     }
 
     int id = atoi(id_str);
-    char resp[64];
-    snprintf(resp, sizeof(resp), "Returning party with ID: %d", id);
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    ui_party_t party;
+
+    if (get_party_by_id(id, &party) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Party not found");
+        return ESP_FAIL;
+    }
+
+    cJSON *json = party_to_json(&party);
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create JSON");
+        return ESP_FAIL;
+    }
+
+    char *json_str = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+
+    free(party.name);  // free strdup()
+    free(json_str);
     return ESP_OK;
 }
 

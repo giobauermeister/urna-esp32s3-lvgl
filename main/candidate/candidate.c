@@ -10,6 +10,7 @@
 static const char* TAG_ADD_CANDIDATE = "Candidate[ADD]";
 static const char* TAG_DEL_CANDIDATE = "Candidate[DEL]";
 static const char* TAG_SEARCH_CANDIDATE = "Candidate[SEARCH]";
+static const char* TAG_GET_ALL_CANDIDATE = "Candidate[GET_ALL]";
 static const char* TAG_ADD_PARTY = "Party[ADD]";
 static const char* TAG_DEL_PARTY = "Party[DEL]";
 static const char* TAG_GET_PARTY = "Party[GET]";
@@ -209,6 +210,108 @@ esp_err_t search_candidate(const char * candidate_number, ui_candidate_t * found
     return ESP_ERR_NOT_FOUND;  // Candidate not found
 }
 
+esp_err_t get_all_candidates(cJSON **array_out)
+{
+    ESP_LOGI(TAG_GET_ALL_CANDIDATE, "Get all candidates");
+
+    FILE *f = fopen(FILE_CANDIDATES, "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG_GET_ALL_CANDIDATE, "Could not open file %s for reading", FILE_CANDIDATES);
+        return ESP_FAIL;
+    }
+
+    *array_out = cJSON_CreateArray();  // allocate the output array
+
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *candidate_obj = cJSON_Parse(line);
+        if (candidate_obj) {
+            // Add a deep copy to the array (ownership is passed to the array)
+            cJSON_AddItemToArray(*array_out, candidate_obj);
+        } else {
+            ESP_LOGW(TAG_GET_ALL_CANDIDATE, "Skipping invalid JSON line");
+        }
+    }
+
+    fclose(f);
+    return ESP_OK;
+}
+
+esp_err_t get_candidate_by_id(int candidate_id, ui_candidate_t * found_candidate)
+{
+    ESP_LOGI("GET_CANDIDATE_BY_ID", "Get candidate by id: %d", candidate_id);
+
+    memset(found_candidate, 0, sizeof(ui_candidate_t));
+
+    FILE *f = fopen(FILE_CANDIDATES, "r");
+    if (f == NULL) {
+        ESP_LOGE("GET_CANDIDATE_BY_ID", "Could not open file %s for reading", FILE_CANDIDATES);
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    ui_party_t found_party;
+    ui_role_t found_role;
+
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *candidate_obj = cJSON_Parse(line);
+        if (!candidate_obj) {
+            ESP_LOGE("GET_CANDIDATE_BY_ID", "Failed to parse JSON line");
+            continue;
+        }
+
+        cJSON *id_item = cJSON_GetObjectItem(candidate_obj, "id");
+        if (cJSON_IsNumber(id_item) && id_item->valueint == candidate_id) {
+            // Found match
+            found_candidate->id = id_item->valueint;
+            found_candidate->name = strdup(cJSON_GetObjectItem(candidate_obj, "name")->valuestring);
+            found_candidate->number = strdup(cJSON_GetObjectItem(candidate_obj, "number")->valuestring);
+            found_candidate->role_id = cJSON_GetObjectItem(candidate_obj, "role_id")->valueint;
+            found_candidate->party_id = cJSON_GetObjectItem(candidate_obj, "party_id")->valueint;
+
+            // Resolve role name
+            if (get_role_by_id(found_candidate->role_id, &found_role) == ESP_OK) {
+                found_candidate->role_name = found_role.name;
+            } else {
+                found_candidate->role_name = strdup("No role");
+            }
+
+            // Resolve party name
+            if (get_party_by_id(found_candidate->party_id, &found_party) == ESP_OK) {
+                found_candidate->party_name = found_party.name;
+            } else {
+                found_candidate->party_name = strdup("No party");
+            }
+
+            cJSON_Delete(candidate_obj);
+            fclose(f);
+            return ESP_OK;
+        }
+
+        cJSON_Delete(candidate_obj);
+    }
+
+    fclose(f);
+    return ESP_ERR_NOT_FOUND;
+}
+
+cJSON *candidate_to_json(const ui_candidate_t * candidate)
+{
+    if (!candidate) return NULL;
+
+    cJSON *obj = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(obj, "id", candidate->id);
+    cJSON_AddStringToObject(obj, "name", candidate->name ? candidate->name : "");
+    cJSON_AddStringToObject(obj, "number", candidate->number ? candidate->number : "");
+    cJSON_AddNumberToObject(obj, "role_id", candidate->role_id);
+    cJSON_AddStringToObject(obj, "role_name", candidate->role_name ? candidate->role_name : "");
+    cJSON_AddNumberToObject(obj, "party_id", candidate->party_id);
+    cJSON_AddStringToObject(obj, "party_name", candidate->party_name ? candidate->party_name : "");
+
+    return obj;
+}
+
 // Helper function to clear candidate data (free memory)
 void free_candidate(ui_candidate_t * candidate) {
     if (candidate->name) free(candidate->name);
@@ -395,6 +498,46 @@ esp_err_t get_party_by_id(int party_id, ui_party_t * found_party)
     return ESP_ERR_NOT_FOUND; // Party not found
 }
 
+esp_err_t get_all_parties(cJSON **array_out)
+{
+    FILE *f = fopen(FILE_PARTIES, "r");
+    if (f == NULL) {
+        ESP_LOGE("GET_ALL_PARTIES", "Could not open %s", FILE_PARTIES);
+        return ESP_FAIL;
+    }
+
+    *array_out = cJSON_CreateArray();
+    if (*array_out == NULL) {
+        fclose(f);
+        return ESP_ERR_NO_MEM;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *party_obj = cJSON_Parse(line);
+        if (party_obj) {
+            cJSON_AddItemToArray(*array_out, party_obj);
+        } else {
+            ESP_LOGW("GET_ALL_PARTIES", "Skipping invalid JSON line");
+        }
+    }
+
+    fclose(f);
+    return ESP_OK;
+}
+
+cJSON *party_to_json(const ui_party_t *party)
+{
+    if (!party) return NULL;
+
+    cJSON *obj = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(obj, "id", party->id);
+    cJSON_AddStringToObject(obj, "name", party->name);
+
+    return obj;
+}
+
 esp_err_t add_role(ui_role_t new_role)
 {
     ESP_LOGI(TAG_ADD_ROLE, "Add role");
@@ -553,6 +696,47 @@ esp_err_t get_role_by_id(int role_id, ui_role_t * found_role)
 
     fclose(f);
     return ESP_ERR_NOT_FOUND; // Role not found
+}
+
+esp_err_t get_all_roles(cJSON **array_out)
+{
+    FILE *f = fopen(FILE_ROLES, "r");
+    if (f == NULL) {
+        ESP_LOGE("GET_ALL_ROLES", "Could not open %s", FILE_ROLES);
+        return ESP_FAIL;
+    }
+
+    *array_out = cJSON_CreateArray();
+    if (*array_out == NULL) {
+        fclose(f);
+        return ESP_ERR_NO_MEM;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *role_obj = cJSON_Parse(line);
+        if (role_obj) {
+            cJSON_AddItemToArray(*array_out, role_obj);
+        } else {
+            ESP_LOGW("GET_ALL_ROLES", "Skipping invalid JSON line");
+        }
+    }
+
+    fclose(f);
+    return ESP_OK;
+}
+
+cJSON *role_to_json(const ui_role_t *role)
+{
+    if (!role) return NULL;
+
+    cJSON *obj = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(obj, "id", role->id);
+    cJSON_AddStringToObject(obj, "name", role->name ? role->name : "");
+    cJSON_AddNumberToObject(obj, "n_digits", role->n_digits);
+
+    return obj;
 }
 
 esp_err_t del_role_by_id(int role_id)
