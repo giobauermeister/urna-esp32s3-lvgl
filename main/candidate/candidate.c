@@ -23,7 +23,7 @@ static const char* TAG_CHECK_ROLE = "Role[CHECK]";
 static const char* TAG_DEL_FILE = "File[DEL]";
 static const char* TAG_STORE_VOTE = "Vote[STORE]";
 
-esp_err_t add_candidate(ui_candidate_t new_candidate)
+esp_err_t add_candidate(ui_candidate_t new_candidate, int * out_id)
 {
     ESP_LOGI(TAG_ADD_CANDIDATE, "Add candidate");
 
@@ -76,7 +76,7 @@ esp_err_t add_candidate(ui_candidate_t new_candidate)
     cJSON_AddNumberToObject(candidate_obj, "id", current_id);
     cJSON_AddStringToObject(candidate_obj, "name", new_candidate.name);
     cJSON_AddStringToObject(candidate_obj, "number", new_candidate.number);
-    cJSON_AddNumberToObject(candidate_obj, "role", new_candidate.role_id);
+    cJSON_AddNumberToObject(candidate_obj, "role_id", new_candidate.role_id);
     cJSON_AddNumberToObject(candidate_obj, "party_id", new_candidate.party_id);
 
     char* rendered_json = cJSON_PrintUnformatted(candidate_obj);
@@ -92,6 +92,7 @@ esp_err_t add_candidate(ui_candidate_t new_candidate)
         return ESP_FAIL;
     }
 
+    if(out_id) * out_id = current_id;
     return ESP_OK;
 }
 
@@ -295,6 +296,84 @@ esp_err_t get_candidate_by_id(int candidate_id, ui_candidate_t * found_candidate
     return ESP_ERR_NOT_FOUND;
 }
 
+esp_err_t edit_candidate_by_id(const ui_candidate_t *updated_candidate)
+{
+    ESP_LOGI("EDIT_CANDIDATE", "Edit candidate with id: %d", updated_candidate->id);
+
+    // Validate party and role existence
+    if(check_role_exists(updated_candidate->role_id) != ESP_OK) {
+        ESP_LOGE("EDIT_CANDIDATE", "Role with id %d does not exist", updated_candidate->role_id);
+        return ESP_FAIL;
+    }
+
+    if(check_party_exists(updated_candidate->party_id) != ESP_OK) {
+        ESP_LOGE("EDIT_CANDIDATE", "Party with id %d does not exist", updated_candidate->party_id);
+        return ESP_FAIL;
+    }
+
+    FILE *f = fopen(FILE_CANDIDATES, "r");
+    if(f == NULL) {
+        ESP_LOGE("EDIT_CANDIDATE", "Could not open file %s for reading", FILE_CANDIDATES);
+        return ESP_FAIL;
+    }
+
+    FILE *f_temp = fopen(FILE_TEMP, "w");
+    if(f_temp == NULL) {
+        ESP_LOGE("EDIT_CANDIDATE", "Could not open file %s for writing", FILE_TEMP);
+        fclose(f);
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    bool found = false;
+
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *candidate_obj = cJSON_Parse(line);
+        if (!candidate_obj) {
+            ESP_LOGW("EDIT_CANDIDATE", "Skipping invalid JSON line");
+            continue;
+        }
+
+        cJSON *id_item = cJSON_GetObjectItem(candidate_obj, "id");
+        if (cJSON_IsNumber(id_item) && id_item->valueint == updated_candidate->id) {
+            found = true;
+            cJSON_Delete(candidate_obj);
+
+            candidate_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(candidate_obj, "id", updated_candidate->id);
+            cJSON_AddStringToObject(candidate_obj, "name", updated_candidate->name);
+            cJSON_AddStringToObject(candidate_obj, "number", updated_candidate->number);
+            cJSON_AddNumberToObject(candidate_obj, "role_id", updated_candidate->role_id);
+            cJSON_AddNumberToObject(candidate_obj, "party_id", updated_candidate->party_id);
+        }
+
+        char *rendered = cJSON_PrintUnformatted(candidate_obj);
+        if (rendered) {
+            fprintf(f_temp, "%s\n", rendered);
+            free(rendered);
+        } else {
+            ESP_LOGE("EDIT_CANDIDATE", "Failed to print JSON line");
+        }
+
+        cJSON_Delete(candidate_obj);
+    }
+
+    fclose(f);
+    fclose(f_temp);
+
+    if(!found) {
+        ESP_LOGW("EDIT_CANDIDATE", "Candidate with id %d not found", updated_candidate->id);
+        remove(FILE_TEMP);
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    // Replace original file
+    remove(FILE_CANDIDATES);
+    rename(FILE_TEMP, FILE_CANDIDATES);
+    ESP_LOGI("EDIT_CANDIDATE", "Candidate with id %d updated successfully", updated_candidate->id);
+    return ESP_OK;
+}
+
 cJSON *candidate_to_json(const ui_candidate_t * candidate)
 {
     if (!candidate) return NULL;
@@ -321,7 +400,7 @@ void free_candidate(ui_candidate_t * candidate) {
     memset(candidate, 0, sizeof(ui_candidate_t));
 }
 
-esp_err_t add_party(ui_party_t new_party)
+esp_err_t add_party(ui_party_t new_party, int * out_id)
 {
     ESP_LOGI(TAG_ADD_PARTY, "Add party");
 
@@ -377,6 +456,7 @@ esp_err_t add_party(ui_party_t new_party)
         return ESP_FAIL;
     }
 
+    if(out_id) * out_id = current_id;
     return ESP_OK;
 }
 
@@ -483,6 +563,7 @@ esp_err_t get_party_by_id(int party_id, ui_party_t * found_party)
                 }
 
                 ESP_LOGI(TAG_GET_PARTY, "Party with id %d found", party_id);
+                found_party->id = party_id;
                 found_party->name = strdup(name_item->valuestring);
                 cJSON_Delete(party_obj);
                 fclose(f);
@@ -526,6 +607,69 @@ esp_err_t get_all_parties(cJSON **array_out)
     return ESP_OK;
 }
 
+esp_err_t edit_party_by_id(const ui_party_t * updated_party)
+{
+    ESP_LOGI("EDIT_PARTY", "Edit party with id: %d", updated_party->id);
+
+    FILE *f = fopen(FILE_PARTIES, "r");
+    if (f == NULL) {
+        ESP_LOGE("EDIT_PARTY", "Could not open file %s for reading", FILE_PARTIES);
+        return ESP_FAIL;
+    }
+
+    FILE *f_temp = fopen(FILE_TEMP, "w");
+    if (f_temp == NULL) {
+        ESP_LOGE("EDIT_PARTY", "Could not open file %s for writing", FILE_TEMP);
+        fclose(f);
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    bool found = false;
+
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *party_obj = cJSON_Parse(line);
+        if (!party_obj) {
+            ESP_LOGW("EDIT_PARTY", "Skipping invalid JSON line");
+            continue;
+        }
+
+        cJSON *id_item = cJSON_GetObjectItem(party_obj, "id");
+        if (cJSON_IsNumber(id_item) && id_item->valueint == updated_party->id) {
+            found = true;
+            cJSON_Delete(party_obj);
+
+            party_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(party_obj, "id", updated_party->id);
+            cJSON_AddStringToObject(party_obj, "name", updated_party->name);
+        }
+
+        char *rendered = cJSON_PrintUnformatted(party_obj);
+        if (rendered) {
+            fprintf(f_temp, "%s\n", rendered);
+            free(rendered);
+        } else {
+            ESP_LOGE("EDIT_PARTY", "Failed to print JSON line");
+        }
+
+        cJSON_Delete(party_obj);
+    }
+
+    fclose(f);
+    fclose(f_temp);
+
+    if (!found) {
+        ESP_LOGW("EDIT_PARTY", "Party with id %d not found", updated_party->id);
+        remove(FILE_TEMP);
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    remove(FILE_PARTIES);
+    rename(FILE_TEMP, FILE_PARTIES);
+    ESP_LOGI("EDIT_PARTY", "Party with id %d updated successfully", updated_party->id);
+    return ESP_OK;
+}
+
 cJSON *party_to_json(const ui_party_t *party)
 {
     if (!party) return NULL;
@@ -538,7 +682,7 @@ cJSON *party_to_json(const ui_party_t *party)
     return obj;
 }
 
-esp_err_t add_role(ui_role_t new_role)
+esp_err_t add_role(ui_role_t new_role, int * out_id)
 {
     ESP_LOGI(TAG_ADD_ROLE, "Add role");
 
@@ -595,6 +739,7 @@ esp_err_t add_role(ui_role_t new_role)
         return ESP_FAIL;
     }
 
+    if(out_id) * out_id = current_id;
     return ESP_OK;
 }
 
@@ -681,6 +826,7 @@ esp_err_t get_role_by_id(int role_id, ui_role_t * found_role)
                 }
 
                 ESP_LOGI(TAG_GET_ROLE, "Role with id %d found", role_id);
+                found_role->id = role_id;
                 found_role->name = strdup(name_item->valuestring);
                 found_role->n_digits = n_digits_item->valueint;
                 cJSON_Delete(role_obj);
@@ -723,6 +869,76 @@ esp_err_t get_all_roles(cJSON **array_out)
     }
 
     fclose(f);
+    return ESP_OK;
+}
+
+esp_err_t edit_role_by_id(const ui_role_t * updated_role)
+{
+    ESP_LOGI("EDIT_ROLE", "Edit role with id: %d", updated_role->id);
+
+    if (updated_role->n_digits < 2 || updated_role->n_digits > 4) {
+        ESP_LOGE("EDIT_ROLE", "Invalid n_digits %d: must be 2, 3, or 4", updated_role->n_digits);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    FILE *f = fopen(FILE_ROLES, "r");
+    if (f == NULL) {
+        ESP_LOGE("EDIT_ROLE", "Could not open file %s for reading", FILE_ROLES);
+        return ESP_FAIL;
+    }
+
+    FILE *f_temp = fopen(FILE_TEMP, "w");
+    if (f_temp == NULL) {
+        ESP_LOGE("EDIT_ROLE", "Could not open file %s for writing", FILE_TEMP);
+        fclose(f);
+        return ESP_FAIL;
+    }
+
+    char line[256];
+    bool found = false;
+
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *role_obj = cJSON_Parse(line);
+        if (!role_obj) {
+            ESP_LOGW("EDIT_ROLE", "Skipping invalid JSON line");
+            continue;
+        }
+
+        cJSON *id_item = cJSON_GetObjectItem(role_obj, "id");
+        if (cJSON_IsNumber(id_item) && id_item->valueint == updated_role->id) {
+            found = true;
+            cJSON_Delete(role_obj);
+
+            role_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(role_obj, "id", updated_role->id);
+            cJSON_AddStringToObject(role_obj, "name", updated_role->name);
+            cJSON_AddNumberToObject(role_obj, "n_digits", updated_role->n_digits);
+        }
+
+        char *rendered = cJSON_PrintUnformatted(role_obj);
+        if (rendered) {
+            fprintf(f_temp, "%s\n", rendered);
+            free(rendered);
+        } else {
+            ESP_LOGE("EDIT_ROLE", "Failed to print JSON line");
+        }
+
+        cJSON_Delete(role_obj);
+    }
+
+    fclose(f);
+    fclose(f_temp);
+
+    if (!found) {
+        remove(FILE_TEMP);
+        ESP_LOGW("EDIT_ROLE", "Role with id %d not found", updated_role->id);
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    remove(FILE_ROLES);
+    rename(FILE_TEMP, FILE_ROLES);
+    ESP_LOGI("EDIT_ROLE", "Role with id %d updated successfully", updated_role->id);
+
     return ESP_OK;
 }
 
@@ -954,4 +1170,24 @@ void load_candidate_roles(void)
     }
 
     fclose(f);
+}
+
+esp_err_t save_candidate_image_to_sd(int candidate_number, const uint8_t *data, size_t size)
+{
+    if (candidate_number <= 0 || !data || size == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "/sd/%d.bin", candidate_number);
+
+    FILE *file = fopen(filepath, "wb");
+    if (!file) {
+        return ESP_FAIL;
+    }
+
+    size_t written = fwrite(data, 1, size, file);
+    fclose(file);
+
+    return (written == size) ? ESP_OK : ESP_FAIL;
 }

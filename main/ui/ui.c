@@ -44,18 +44,19 @@ static bool candidate_found = false;
  *  GLOBAL VARIABLES
  **********************/
 // Declare an array to hold the rectangle objects
-lv_obj_t *rectangles[MAX_DIGITS];
-lv_obj_t *lb_rect_input_numbers[MAX_DIGITS];
+lv_obj_t * rectangles[MAX_DIGITS];
+lv_obj_t * lb_rect_input_numbers[MAX_DIGITS];
 
-lv_obj_t *lb_candidate_role;
-lv_obj_t *lb_cadidate_name;
-lv_obj_t *lb_candidate_party_name;
+lv_obj_t * lb_candidate_role;
+lv_obj_t * lb_cadidate_name;
+lv_obj_t * lb_candidate_party_name;
 
-lv_obj_t *ui_bottom_line;
-lv_obj_t *ui_lb_press_key;
-lv_obj_t *ui_lb_confirm;
-lv_obj_t *ui_lb_restart;
-lv_obj_t *ui_img_profile;
+lv_obj_t * ui_bottom_line = NULL;
+lv_obj_t * ui_lb_press_key = NULL;
+lv_obj_t * ui_lb_confirm = NULL;
+lv_obj_t * ui_lb_restart = NULL;
+lv_obj_t * ui_img_profile = NULL;
+lv_obj_t * ui_no_photo_placeholder = NULL;
 
 int lb_rect_input_number = 0;
 bool vote_state = false;
@@ -100,6 +101,7 @@ void update_ui_keypress(char key)
             blink_rectangle(lb_rect_input_number, true);
 
             lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
@@ -170,6 +172,7 @@ void update_ui_keypress(char key)
 
                 // 6. Hide result UI elements again
                 lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
@@ -200,6 +203,7 @@ void update_ui_keypress(char key)
         blink_rectangle(lb_rect_input_number, true);
 
         lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
@@ -232,16 +236,27 @@ void update_ui_keypress(char key)
         ui_candidate_t found_candidate;
         esp_err_t result = search_candidate(vote_number, &found_candidate);
         char file_path[64];
+        char sd_path[64];
 
         if (result == ESP_OK) {
             LV_LOG_USER("Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
             candidate_found = true;
-            // Use the found_candidate structure
             lv_label_set_text(lb_cadidate_name, found_candidate.name);
             lv_label_set_text(lb_candidate_party_name, found_candidate.party_name);
-            snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
-            lv_image_set_scale(ui_img_profile, 256);
-            lv_image_set_src(ui_img_profile, file_path);
+            snprintf(sd_path, sizeof(sd_path), "/sd/%s.bin", found_candidate.number);
+            FILE *f = fopen(sd_path, "rb");
+            if (f) {
+                fclose(f);
+                snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
+                lv_image_set_scale(ui_img_profile, 256);
+                lv_image_set_src(ui_img_profile, file_path);
+                lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+            } else {
+                LV_LOG_USER("Photo not found for %s", found_candidate.number);
+                lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+            }
             free_candidate(&found_candidate);  // Free memory after use
             lv_obj_remove_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
@@ -359,6 +374,20 @@ void create_ui(void)
     lv_obj_set_size(ui_img_profile, 240, 300);
     lv_obj_align(ui_img_profile, LV_ALIGN_RIGHT_MID, -80, 0);
     lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+
+    ui_no_photo_placeholder = lv_obj_create(screen);
+    lv_obj_set_size(ui_no_photo_placeholder, 240, 300);
+    lv_obj_align(ui_no_photo_placeholder, LV_ALIGN_RIGHT_MID, -80, 0);
+    lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(ui_no_photo_placeholder, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(ui_no_photo_placeholder, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_no_photo_placeholder, 0, LV_PART_MAIN);
+
+    lv_obj_t * label_no_photo = lv_label_create(ui_no_photo_placeholder);
+    lv_label_set_text(label_no_photo, "SEM\nFOTO");
+    lv_obj_center(label_no_photo);
+    lv_obj_set_style_text_align(label_no_photo, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_no_photo, &lv_font_montserrat_26, LV_PART_MAIN);
 }
 
 /**********************

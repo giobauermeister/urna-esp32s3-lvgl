@@ -41,27 +41,31 @@ typedef struct {
 } ui_vote_store_t;
 
 esp_err_t del_file_content(const char * file_path);
-esp_err_t add_candidate(ui_candidate_t new_dandidate);
+esp_err_t add_candidate(ui_candidate_t new_candidate, int * out_id);
 esp_err_t del_candidate_by_id(int candidate_id);
 esp_err_t search_candidate(const char * candidate_number, ui_candidate_t * found_candidate);
 esp_err_t get_all_candidates(cJSON **array_out);
 esp_err_t get_candidate_by_id(int candidate_id, ui_candidate_t * found_candidate);
+esp_err_t edit_candidate_by_id(const ui_candidate_t *updated_candidate);
 cJSON *candidate_to_json(const ui_candidate_t * candidate);
 void free_candidate(ui_candidate_t * candidate);
-esp_err_t add_party(ui_party_t new_party);
+esp_err_t add_party(ui_party_t new_party, int * out_id);
 esp_err_t del_party_by_id(int party_id);
 esp_err_t check_party_exists(int party_id);
 esp_err_t get_party_by_id(int party_id, ui_party_t * found_party);
 esp_err_t get_all_parties(cJSON **array_out);
+esp_err_t edit_party_by_id(const ui_party_t * updated_party);
 cJSON *party_to_json(const ui_party_t *party);
-esp_err_t add_role(ui_role_t new_role);
+esp_err_t add_role(ui_role_t new_role, int * out_id);
 esp_err_t del_role_by_id(int role_id);
 esp_err_t get_role_by_id(int role_id, ui_role_t * found_role);
 esp_err_t get_all_roles(cJSON **array_out);
+esp_err_t edit_role_by_id(const ui_role_t * updated_role);
 cJSON *role_to_json(const ui_role_t *role);
 esp_err_t check_role_exists(int role_id);
 int get_number_of_roles(void);
 esp_err_t store_vote(ui_vote_store_t vote);
 void load_candidate_roles(void);
+esp_err_t save_candidate_image_to_sd(int candidate_number, const uint8_t *data, size_t size);
 
 #endif // CANDIDATE_H

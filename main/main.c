@@ -19,6 +19,8 @@
 #include "esp_sntp.h"
 #include "web_api/web_api.h"
 
+#define WIFI_ENABLE 0
+
 uint8_t* urna_sound_long = NULL;
 size_t urna_sound_long_size = 0;
 
@@ -94,10 +96,13 @@ void app_main(void)
     urna_sound_long = load_sound_to_memory("/spiffs/urna_sound_long.wav", &urna_sound_long_size);
     urna_sound_short = load_sound_to_memory("/spiffs/urna_sound_short.wav", &urna_sound_short_size);
 
+#if WIFI_ENABLE
     wifi_init_sta();
     initialize_sntp();
     wait_for_time_sync();
     start_webserver();
+#endif
+
     load_candidate_roles();
     init_lcd_panel();
     init_lvgl();

@@ -21,7 +21,6 @@ set(SRC_FILES
 
 set(UI_ASSETS
     "ui/assets/img_unknown.c"
-    "ui/assets/img_no_photo.c"  
 )
 
 set(REQ_COMPONENTS

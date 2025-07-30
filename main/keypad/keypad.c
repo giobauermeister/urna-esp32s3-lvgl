@@ -13,7 +13,7 @@ QueueHandle_t keypad_queue;  // Queue for keys
 // Write to PCF8574 function
 esp_err_t pcf8574_write(uint8_t data)
 {
-    esp_err_t ret = i2c_master_transmit(pcf8574_i2c_device_handle, &data, 1, pdMS_TO_TICKS(1000));
+    esp_err_t ret = i2c_master_transmit(pcf8574_i2c_device_handle, &data, 1, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT));
     if (ret != ESP_OK) {
         ESP_LOGE("PCF8574", "I2C write failed with error code: 0x%x", ret);
     }
@@ -23,7 +23,7 @@ esp_err_t pcf8574_write(uint8_t data)
 // Read from PCF8574 function
 esp_err_t pcf8574_read(uint8_t *data)
 {
-    esp_err_t ret = i2c_master_receive(pcf8574_i2c_device_handle, data, 1, pdMS_TO_TICKS(1000));
+    esp_err_t ret = i2c_master_receive(pcf8574_i2c_device_handle, data, 1, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT));
     if (ret != ESP_OK) {
         ESP_LOGE("PCF8574", "I2C read failed with error code: 0x%x", ret);
     }
@@ -91,8 +91,8 @@ void keypad_task(void *arg)
             ESP_LOGI(TAG, "Key pressed: %c", key);
             xQueueSend(keypad_queue, &key, portMAX_DELAY);
         }
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }    
+        vTaskDelay(pdMS_TO_TICKS(30));
+    }
 }
 
 void create_keypad_interrupt_task(void)

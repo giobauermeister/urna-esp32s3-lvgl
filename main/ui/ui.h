@@ -20,7 +20,6 @@
  *      ASSETS
  *********************/
 LV_IMAGE_DECLARE(img_unknown);
-LV_IMAGE_DECLARE(img_no_photo);
 
 /**********************
  *      TYPEDEFS
