@@ -66,6 +66,7 @@ int total_rectangles = 0;
 ui_role_static_t voting_sequence[MAX_ROLES];
 int total_roles = 0;
 int current_role_index = 0;
+bool on_end_screen = false;
 
 /**********************
  *      MACROS
@@ -77,20 +78,124 @@ int current_role_index = 0;
 
 void update_ui_keypress(char key)
 {
-    LV_LOG_USER("Received key: %c", key);
+    if(!on_end_screen) {
 
-    if(vote_state == false && (key == 'A' || key == 'C' || key == 'D' || key == '*' || key == '#')) {
-        return;
-    }
+        LV_LOG_USER("Received key: %c", key);
 
-    if(vote_state == true)
-    {
+        if(vote_state == false && (key == 'A' || key == 'C' || key == 'D' || key == '*' || key == '#')) {
+            return;
+        }
+
+        if(vote_state == true)
+        {
+            if(key == 'B') // CORRIGE key pressed
+            {
+                candidate_found = false;
+
+                lv_memset(vote_number, 0, sizeof(vote_number));
+
+                for (size_t i = 0; i < total_rectangles; i++)
+                {
+                    lv_label_set_text(lb_rect_input_numbers[i], "");
+                    blink_rectangle(i, false);
+                }
+                lb_rect_input_number = 0;
+                vote_state = false;
+                blink_rectangle(lb_rect_input_number, true);
+
+                lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+                return;
+            }
+
+            if(key == 'A') // CONFIRMA key pressed
+            {
+                if (!candidate_found) {
+                    LV_LOG_USER("Cannot confirm vote: candidate not found");
+                    return;
+                }
+
+                LV_LOG_USER("Confirm vote for number: %s", vote_number);
+                
+                ui_vote_store_t *vote = lv_malloc(sizeof(ui_vote_store_t));
+                if (!vote) {
+                    LV_LOG_USER("Failed to allocate memory for vote");
+                    return;
+                }
+
+                vote->number = lv_strdup(vote_number);  // make a copy of the number string
+                vote->timestamp = time(NULL);
+
+                if (!vote->number) {
+                    LV_LOG_USER("Failed to allocate memory for vote number");
+                    lv_free(vote);
+                    return;
+                }
+
+                lv_async_call(store_vote_async_cb, vote);
+
+                if (go_to_next_role()) {
+                    candidate_found = false;
+                    lv_async_call(play_urna_sound_short, NULL);
+                    // Prepare for next voting stage
+
+                    // 1. Reset vote state and number
+                    lv_memset(vote_number, 0, sizeof(vote_number));
+                    lb_rect_input_number = 0;
+                    vote_state = false;
+
+                    // 2. Destroy old rectangles (optional if you recreate them in-place)
+                    for (size_t i = 0; i < total_rectangles; i++) {
+                        lv_obj_delete(rectangles[i]);
+                        lv_obj_delete(lb_rect_input_numbers[i]);
+                    }
+
+                    // 3. Get new role info and recreate rectangles
+                    ui_role_static_t *role = get_current_role();
+                    if (role) {
+                        total_rectangles = role->n_digits;
+                        create_row_rectangles(lv_screen_active(), total_rectangles);
+
+                        // 4. Blink the first rectangle
+                        blink_rectangle(0, true);
+                        for (int i = 1; i < total_rectangles; i++) {
+                            blink_rectangle(i, false);
+                        }
+
+                        // 5. Update role name label
+                        lv_label_set_text(lb_candidate_role, role->name);
+                    }
+
+                    // 6. Hide result UI elements again
+                    lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+
+                    return;
+                } else {
+                    LV_LOG_USER("All roles completed. End of voting.");
+                    lv_async_call(play_urna_sound_long, NULL);
+                    show_voting_end_screen_and_restart();
+                }
+            }
+        }
+
         if(key == 'B') // CORRIGE key pressed
         {
-            candidate_found = false;
-
             lv_memset(vote_number, 0, sizeof(vote_number));
-
+            
             for (size_t i = 0; i < total_rectangles; i++)
             {
                 lv_label_set_text(lb_rect_input_numbers[i], "");
@@ -112,171 +217,70 @@ void update_ui_keypress(char key)
             return;
         }
 
-        if(key == 'A') // CONFIRMA key pressed
+        if(lb_rect_input_number < total_rectangles - 1)
         {
-            if (!candidate_found) {
-                LV_LOG_USER("Cannot confirm vote: candidate not found");
-                return;
-            }
+            vote_number[lb_rect_input_number] = key;
+            lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
+            lb_rect_input_number++;
+            blink_rectangle(lb_rect_input_number, true);
+            blink_rectangle(lb_rect_input_number-1, false);
+            return;
+        }
 
-            LV_LOG_USER("Confirm vote for number: %s", vote_number);
-            
-            ui_vote_store_t *vote = lv_malloc(sizeof(ui_vote_store_t));
-            if (!vote) {
-                LV_LOG_USER("Failed to allocate memory for vote");
-                return;
-            }
+        if(lb_rect_input_number == total_rectangles - 1 && vote_state == false)
+        {
+            vote_number[lb_rect_input_number] = key;
+            lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
+            blink_rectangle(lb_rect_input_number, false);
+            vote_state = true;
 
-            vote->number = lv_strdup(vote_number);  // make a copy of the number string
-            vote->timestamp = time(NULL);
+            LV_LOG_USER("Search for candidate with number: %s", vote_number);
 
-            if (!vote->number) {
-                LV_LOG_USER("Failed to allocate memory for vote number");
-                lv_free(vote);
-                return;
-            }
+            ui_candidate_t found_candidate;
+            esp_err_t result = search_candidate(vote_number, &found_candidate);
+            char file_path[64];
+            char sd_path[64];
 
-            lv_async_call(store_vote_async_cb, vote);
-
-            if (go_to_next_role()) {
+            if (result == ESP_OK) {
+                LV_LOG_USER("Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
+                candidate_found = true;
+                lv_label_set_text(lb_cadidate_name, found_candidate.name);
+                lv_label_set_text(lb_candidate_party_name, found_candidate.party_name);
+                snprintf(sd_path, sizeof(sd_path), "/sd/%s.bin", found_candidate.number);
+                FILE *f = fopen(sd_path, "rb");
+                if (f) {
+                    fclose(f);
+                    snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
+                    lv_image_set_scale(ui_img_profile, 256);
+                    lv_image_set_src(ui_img_profile, file_path);
+                    lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+                } else {
+                    LV_LOG_USER("Photo not found for %s", found_candidate.number);
+                    lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_remove_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
+                }
+                free_candidate(&found_candidate);  // Free memory after use
+                lv_obj_remove_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
+            } else {
+                LV_LOG_USER("Candidate not found");
                 candidate_found = false;
-                lv_async_call(play_urna_sound_short, NULL);
-                // Prepare for next voting stage
-
-                // 1. Reset vote state and number
-                lv_memset(vote_number, 0, sizeof(vote_number));
-                lb_rect_input_number = 0;
-                vote_state = false;
-
-                // 2. Destroy old rectangles (optional if you recreate them in-place)
-                for (size_t i = 0; i < total_rectangles; i++) {
-                    lv_obj_delete(rectangles[i]);
-                    lv_obj_delete(lb_rect_input_numbers[i]);
-                }
-
-                // 3. Get new role info and recreate rectangles
-                ui_role_static_t *role = get_current_role();
-                if (role) {
-                    total_rectangles = role->n_digits;
-                    create_row_rectangles(lv_screen_active(), total_rectangles);
-
-                    // 4. Blink the first rectangle
-                    blink_rectangle(0, true);
-                    for (int i = 1; i < total_rectangles; i++) {
-                        blink_rectangle(i, false);
-                    }
-
-                    // 5. Update role name label
-                    lv_label_set_text(lb_candidate_role, role->name);
-                }
-
-                // 6. Hide result UI elements again
-                lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
-
-                return;
-            } else {
-                LV_LOG_USER("All roles completed. End of voting.");
-                lv_async_call(play_urna_sound_long, NULL);
-                show_voting_end_screen_and_restart();
+                lv_label_set_text(lb_cadidate_name, "Nao encontrado");
+                lv_label_set_text(lb_candidate_party_name, " ");
+                lv_image_set_scale(ui_img_profile, 512);
+                lv_image_set_src(ui_img_profile, &img_unknown);
+                lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
             }
+
+            lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
+
+            return;
         }
-    }
-
-    if(key == 'B') // CORRIGE key pressed
-    {
-        lv_memset(vote_number, 0, sizeof(vote_number));
-        
-        for (size_t i = 0; i < total_rectangles; i++)
-        {
-            lv_label_set_text(lb_rect_input_numbers[i], "");
-            blink_rectangle(i, false);
-        }
-        lb_rect_input_number = 0;
-        vote_state = false;
-        blink_rectangle(lb_rect_input_number, true);
-
-        lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
-
-        return;
-    }
-
-    if(lb_rect_input_number < total_rectangles - 1)
-    {
-        vote_number[lb_rect_input_number] = key;
-        lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
-        lb_rect_input_number++;
-        blink_rectangle(lb_rect_input_number, true);
-        blink_rectangle(lb_rect_input_number-1, false);
-        return;
-    }
-
-    if(lb_rect_input_number == total_rectangles - 1 && vote_state == false)
-    {
-        vote_number[lb_rect_input_number] = key;
-        lv_label_set_text_fmt(lb_rect_input_numbers[lb_rect_input_number], "%c", key);
-        blink_rectangle(lb_rect_input_number, false);
-        vote_state = true;
-
-        LV_LOG_USER("Search for candidate with number: %s", vote_number);
-
-        ui_candidate_t found_candidate;
-        esp_err_t result = search_candidate(vote_number, &found_candidate);
-        char file_path[64];
-        char sd_path[64];
-
-        if (result == ESP_OK) {
-            LV_LOG_USER("Candidate found: %s (ID: %d)", found_candidate.name, found_candidate.id);
-            candidate_found = true;
-            lv_label_set_text(lb_cadidate_name, found_candidate.name);
-            lv_label_set_text(lb_candidate_party_name, found_candidate.party_name);
-            snprintf(sd_path, sizeof(sd_path), "/sd/%s.bin", found_candidate.number);
-            FILE *f = fopen(sd_path, "rb");
-            if (f) {
-                fclose(f);
-                snprintf(file_path, sizeof(file_path), "S:/%s.bin", found_candidate.number);
-                lv_image_set_scale(ui_img_profile, 256);
-                lv_image_set_src(ui_img_profile, file_path);
-                lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_add_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
-            } else {
-                LV_LOG_USER("Photo not found for %s", found_candidate.number);
-                lv_obj_add_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_remove_flag(ui_no_photo_placeholder, LV_OBJ_FLAG_HIDDEN);
-            }
-            free_candidate(&found_candidate);  // Free memory after use
-            lv_obj_remove_flag(ui_lb_confirm, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            LV_LOG_USER("Candidate not found");
-            candidate_found = false;
-            lv_label_set_text(lb_cadidate_name, "Nao encontrado");
-            lv_label_set_text(lb_candidate_party_name, " ");
-            lv_image_set_scale(ui_img_profile, 512);
-            lv_image_set_src(ui_img_profile, &img_unknown);
-            lv_obj_remove_flag(ui_lb_restart, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        lv_obj_remove_flag(ui_img_profile, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(lb_cadidate_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(lb_candidate_party_name, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(ui_bottom_line, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(ui_lb_press_key, LV_OBJ_FLAG_HIDDEN);
-
-        return;
     }
 }
 
@@ -388,6 +392,8 @@ void create_ui(void)
     lv_obj_center(label_no_photo);
     lv_obj_set_style_text_align(label_no_photo, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(label_no_photo, &lv_font_montserrat_26, LV_PART_MAIN);
+
+    on_end_screen = false;
 }
 
 /**********************
@@ -515,6 +521,7 @@ static void restart_voting(void)
 
 static void show_voting_end_screen_and_restart(void)
 {
+    on_end_screen = true;
     // Clear everything
     lv_obj_clean(lv_screen_active());
 
